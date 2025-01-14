@@ -7,11 +7,11 @@ const cors = require("cors");
 
 dotenv.config();
 
+const authRoutes = require("./routes/userRoute"); 
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-
-const port = process.env.PORT || 5000;
 
 // MongoDB Connection
 mongoose
@@ -19,12 +19,14 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((error) => console.log("MongoDB Connection Error: ", error));
 
-// Use my Armstrong database in mongodb
 const db = mongoose.connection.useDb("Armstrong");
 
-// Message to start the API
+app.use("/api/auth", authRoutes); 
+
+// Server Start Message
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server is running on http://192.168.100.134:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
 
 module.exports = { app };

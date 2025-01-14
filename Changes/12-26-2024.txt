@@ -1,5 +1,0 @@
-*Added the following on the backend*
-
-- Dependencies
-- Models for the app (chat, articles, notification, patient, session, specialist) [No contents yet, all empty]
-- Connected the backend to MongoDB

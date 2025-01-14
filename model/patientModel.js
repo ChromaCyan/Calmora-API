@@ -32,11 +32,6 @@ const patientSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    gender: {
-      type: String,
-      enum: ['Male', 'Female', 'Other'],
-      required: true,
-    },
     phoneNumber: {
       type: String,
       required: true,
@@ -59,9 +54,7 @@ const patientSchema = new mongoose.Schema(
       default: Date.now,
     },
     updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+      type: Date,default: Date.now,},
   },
   { timestamps: true }
 );

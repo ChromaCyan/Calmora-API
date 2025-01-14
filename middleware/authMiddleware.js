@@ -1,0 +1,38 @@
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+
+const verifyToken = (req, res, next) => {
+    const token = req.header('Authorization')?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'Access Denied! No Token Provided.' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(400).json({ message: 'Invalid Token.' });
+    }
+};
+
+const isPatient = (req, res, next) => {
+    if (req.user && req.user.userType === 'patient') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Forbidden! You are not a Patient.' });
+    }
+};
+
+const isSpecialist = (req, res, next) => {
+    if (req.user && req.user.userType === 'specialist') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Forbidden! You are not a Specialist.' });
+    }
+};
+
+module.exports = { verifyToken, isPatient, isSpecialist };
