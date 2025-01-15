@@ -11,6 +11,7 @@ const specialistSchema = new mongoose.Schema(
     specialization: { type: String, required: true },
     licenseNumber: { type: String, required: true },
     phoneNumber: { type: String, required: true },
+    userType: { type: String, default: 'specialist' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

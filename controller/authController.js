@@ -101,6 +101,7 @@ exports.createUser = async (req, res) => {
             lastName,
             email,
             password,
+            userType, 
             ...otherDetails,
         });
 

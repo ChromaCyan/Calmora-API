@@ -36,6 +36,7 @@ const patientSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    userType: { type: String, default: 'patient' },
     emergencyContact: {
       name: { type: String, required: true },
       phone: { type: String, required: true },
