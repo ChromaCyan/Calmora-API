@@ -11,7 +11,7 @@ const User = require('../model/userModel');
 const Patient = require('../model/patientModel'); 
 const Specialist = require('../model/specialistModel'); 
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || '123_123';
 const otps = {};
 
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
