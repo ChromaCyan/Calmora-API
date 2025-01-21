@@ -1,20 +1,19 @@
-const Patient = require('../model/patientModel');
-const Specialist = require('../model/specialistModel');
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const dotenv = require("dotenv");
+const dotenv = require('dotenv');
 
 dotenv.config();
 
-// JWT Secret key
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const User = require('../model/userModel');
+const Patient = require('../model/patientModel'); 
+const Specialist = require('../model/specialistModel'); 
 
-// Temporary storage for OTPs
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 const otps = {};
 
-// Helper function to generate OTP
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
 const sendEmail = async (email, otp) => {
@@ -33,7 +32,7 @@ const sendEmail = async (email, otp) => {
             subject: 'Welcome to Armstrong - Verify Your Email',
             text: `Welcome to Armstrong!
 
-We're excited to have you on board. To complete your sign-up, please use the following OTP to verify your email:
+We’re excited to have you on board. To complete your sign-up, please use the following OTP to verify your email:
 
 OTP Code: ${otp}
 
@@ -42,8 +41,7 @@ This code will expire in 5 minutes. Please do not share it with anyone.
 If you did not create an account with Armstrong, you can safely ignore this email.
 
 Thank you,  
-The Armstrong Team
-            `,
+The Armstrong Team`
         };
 
         await transporter.sendMail(mailOptions);
@@ -53,7 +51,6 @@ The Armstrong Team
         throw new Error('Error sending email');
     }
 };
-
 
 // OTP Verification
 exports.verifyOTP = async (req, res) => {
@@ -79,41 +76,34 @@ exports.verifyOTP = async (req, res) => {
 
 // Register User
 exports.createUser = async (req, res) => {
-    const { firstName, lastName, email, password, userType, ...otherDetails } = req.body;
+    const { firstName, lastName, email, password, ...otherDetails } = req.body;
 
     try {
-        let UserModel;
-        if (userType === 'patient') {
-            UserModel = Patient;
-        } else if (userType === 'specialist') {
-            UserModel = Specialist;
-        } else {
-            return res.status(400).json({ message: 'Invalid user type' });
-        }
+        const lowerCaseEmail = email.toLowerCase();
 
-        const existingUser = await UserModel.findOne({ email });
+        // Check if email already exists
+        const existingUser = await User.findOne({ email: lowerCaseEmail });
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
+            return res.status(400).json({ message: 'User already exists' });
         }
 
-        const newUser = new UserModel({
-            firstName,
-            lastName,
-            email,
-            password,
-            userType, 
-            ...otherDetails,
-        });
+        let newUser;
+
+        if (req.body.specialization) { 
+            newUser = new Specialist({ firstName, lastName, email: lowerCaseEmail, password, ...otherDetails });
+        } else { 
+            newUser = new Patient({ firstName, lastName, email: lowerCaseEmail, password, ...otherDetails });
+        }
 
         await newUser.save();
 
         const otp = generateOTP();
-        otps[email] = { otp, expires: Date.now() + 300000 };
-        await sendEmail(email, otp);
+        otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 }; // OTP expires in 5 minutes
+        await sendEmail(lowerCaseEmail, otp);
 
-        const token = jwt.sign({ id: newUser._id, userType }, JWT_SECRET, { expiresIn: '3h' });
+        const token = jwt.sign({ id: newUser._id, userType: newUser.userType }, JWT_SECRET, { expiresIn: '3h' });
 
-        res.status(201).json({ message: "User created successfully, OTP sent", token, userId: newUser._id });
+        res.status(201).json({ message: 'User created successfully, OTP sent', token, userId: newUser._id });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -121,25 +111,31 @@ exports.createUser = async (req, res) => {
 
 // Login User
 exports.loginUser = async (req, res) => {
-    const { email, password, userType } = req.body;
-
+    const { email, password } = req.body;
+  
     try {
-        let user;
-        if (userType === 'patient') {
-            user = await Patient.findOne({ email });
-        } else if (userType === 'specialist') {
-            user = await Specialist.findOne({ email });
-        } else {
-            return res.status(400).json({ message: 'Invalid user type' });
-        }
+        const lowerCaseEmail = email.toLowerCase();
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ id: user._id, userType }, JWT_SECRET, { expiresIn: '3h' });
-        res.status(200).json({ token, userId: user._id, userType });
+        const user = await User.findOne({ email: email.toLowerCase() });
+  
+      if (!user) {
+        user = await Patient.findOne({ email: lowerCaseEmail }) || await Specialist.findOne({ email: lowerCaseEmail });
+      }
+  
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+  
+      // Generate JWT token with the user ID and userType
+      const token = jwt.sign({ id: user._id, userType: user.userType }, JWT_SECRET, { expiresIn: '3h' });
+  
+      // Respond with the token, user ID, and userType
+      res.status(200).json({
+        token,
+        userId: user._id,
+        userType: user.userType,
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
-};
+  };
