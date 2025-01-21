@@ -23,6 +23,10 @@ const db = mongoose.connection.useDb("Armstrong");
 
 app.get("/", (req, res) => res.send("Express on Vercel")); 
 
+app.get("/api", (req, res) => {
+  res.json({ message: "Hello from the API!" });
+});
+
 app.use("/api/auth", authRoutes); 
 
 // Server Start Message
