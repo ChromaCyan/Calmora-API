@@ -1,18 +1,54 @@
 const Chat = require('../model/chatModel');
+const User = require('../model/userModel');
+
+exports.createChat = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+        const { recipientId } = req.body; 
+
+        // Create a new chat session
+        const newChat = new Chat({
+            participants: [userId, recipientId], 
+            messages: [], 
+        });
+
+        const savedChat = await newChat.save();
+
+        res.status(200).json({ chatId: savedChat._id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to create a new chat.' });
+    }
+};
 
 exports.sendMessage = async (req, res) => {
     try {
         const { chatId, content } = req.body;
-        const userId = req.user.id; 
+        const userId = req.user.id;
+
+        console.log("Chat ID:", chatId);
+        console.log("User ID:", userId);
 
         const chat = await Chat.findById(chatId);
         if (!chat) return res.status(404).json({ error: 'Chat not found.' });
 
-        chat.messages.push({ sender: userId, content });
+        const sender = await User.findById(userId);
+        if (!sender) return res.status(404).json({ error: 'Sender not found.' });
+
+        console.log("Sender:", sender);
+
+        chat.messages.push({
+            sender: userId,
+            firstName: sender.firstName,
+            lastName: sender.lastName,
+            content
+        });
+
         await chat.save();
 
         res.status(200).json({ message: 'Message sent.', chat });
     } catch (error) {
+        console.error(error);  
         res.status(500).json({ error: 'Failed to send message.' });
     }
 };

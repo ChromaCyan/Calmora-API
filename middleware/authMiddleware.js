@@ -6,15 +6,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 const verifyToken = (req, res, next) => {
     const token = req.header('Authorization')?.split(' ')[1];
+    console.log('Received Token:', token); 
+
     if (!token) {
         return res.status(401).json({ message: 'Access Denied! No Token Provided.' });
     }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('Decoded Token:', decoded);
         req.user = decoded;
         next();
     } catch (error) {
+        console.log('Token Verification Error:', error);
         res.status(400).json({ message: 'Invalid Token.' });
     }
 };

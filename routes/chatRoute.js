@@ -4,6 +4,7 @@ const { verifyToken, isPatient, isSpecialist } = require('../middleware/authMidd
 const chatController = require('../controller/chatController');
 
 // Protect the routes by applying the middleware
+router.post('/create-chat', verifyToken, chatController.createChat);
 router.post('/send-message', verifyToken, chatController.sendMessage);
 router.get('/chat-list', verifyToken, chatController.getChatList);
 router.get('/chat-history/:chatId', verifyToken, chatController.getChatHistory);
