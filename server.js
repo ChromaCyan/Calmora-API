@@ -12,6 +12,7 @@ dotenv.config();
 
 const authRoutes = require("./routes/userRoute");
 const chatRoutes = require("./routes/chatRoute");
+const appointmentRoutes = require("./routes/appointmentRoute")
 
 const app = express();
 
@@ -46,6 +47,10 @@ app.use("/api/chat", chatRoutes);
 
 app.use("/api/auth", authRoutes);
 
+app.use("/api/appointment", appointmentRoutes);
+
+
+//Socket End
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 

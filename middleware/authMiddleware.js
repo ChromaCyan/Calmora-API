@@ -24,7 +24,7 @@ const verifyToken = (req, res, next) => {
 };
 
 const isPatient = (req, res, next) => {
-    if (req.user && req.user.userType === 'patient') {
+    if (req.user && req.user.userType.toLowerCase() === 'patient') {
         next();
     } else {
         res.status(403).json({ message: 'Forbidden! You are not a Patient.' });
@@ -32,7 +32,7 @@ const isPatient = (req, res, next) => {
 };
 
 const isSpecialist = (req, res, next) => {
-    if (req.user && req.user.userType === 'specialist') {
+    if (req.user && req.user.userType.toLowerCase() === 'specialist') {
         next();
     } else {
         res.status(403).json({ message: 'Forbidden! You are not a Specialist.' });
