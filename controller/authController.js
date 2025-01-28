@@ -217,7 +217,7 @@ exports.getSpecialistList = async (req, res) => {
 // Get patient-specific data
 exports.getPatientData = async (req, res) => {
   try {
-    const patient = await Patient.findById(req.user.id, "-password"); // Exclude passwords for security
+    const patient = await Patient.findById(req.user.id, "-password");
 
     if (!patient) {
       return res
@@ -226,6 +226,27 @@ exports.getPatientData = async (req, res) => {
     }
 
     res.status(200).json({ success: true, data: patient });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Fetch a specialist by ID
+exports.getSpecialistById = async (req, res) => {
+  const { specialistId } = req.params;
+
+  try {
+    const specialist = await Specialist.findById(specialistId).select(
+      '-password' // Exclude the password field for security
+    );
+
+    if (!specialist) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Specialist not found' });
+    }
+
+    res.status(200).json({ success: true, data: specialist });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

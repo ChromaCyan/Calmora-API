@@ -14,4 +14,7 @@ router.put('/profile', verifyToken, authController.editProfile);
 router.get('/specialists', verifyToken, authController.getSpecialistList); 
 router.get('/patient-data', verifyToken, isPatient, authController.getPatientData); 
 
+// Fetch a specialist by ID
+router.get('/specialists/:specialistId', verifyToken, authController.getSpecialistById);
+
 module.exports = router;

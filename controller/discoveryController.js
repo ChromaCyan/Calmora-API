@@ -1,4 +1,4 @@
-const User = require('./models/userModel');
+const User = require("../model/userModel");
 
 // Fetch all specialists
 async function getSpecialists() {
