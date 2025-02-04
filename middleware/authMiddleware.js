@@ -39,4 +39,12 @@ const isSpecialist = (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken, isPatient, isSpecialist };
+const isAdmin = (req, res, next) => {
+    if (req.user && req.user.userType.toLowerCase() === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Forbidden! You are not a Admin.' });
+    }
+};
+
+module.exports = { verifyToken, isPatient, isSpecialist, isAdmin };

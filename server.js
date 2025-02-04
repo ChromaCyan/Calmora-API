@@ -9,7 +9,8 @@ const Chat = require('./model/chatModel');
 const chatController = require('./controller/chatController'); 
 
 dotenv.config();
-
+//Route Imports
+const moodRoutes = require('./routes/moodRoutes');
 const authRoutes = require("./routes/userRoute");
 const chatRoutes = require("./routes/chatRoute");
 const appointmentRoutes = require("./routes/appointmentRoute")
@@ -38,16 +39,13 @@ const db = mongoose.connection.useDb("Armstrong");
 
 // Routes
 app.get("/", (req, res) => res.send("Express on Vercel"));
-
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from the API!" });
 });
-
 app.use("/api/chat", chatRoutes);
-
 app.use("/api/auth", authRoutes);
-
 app.use("/api/appointment", appointmentRoutes);
+app.use('/api/mood', moodRoutes);
 
 
 //Socket End

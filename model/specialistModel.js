@@ -13,6 +13,7 @@ const specialistSchema = new mongoose.Schema({
     comment: { type: String },
     reviewerName: { type: String }
   }],
+  //status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" }, 
 }, { timestamps: true });
 
 module.exports = User.discriminator('Specialist', specialistSchema);
