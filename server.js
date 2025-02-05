@@ -14,6 +14,7 @@ const moodRoutes = require('./routes/moodRoutes');
 const authRoutes = require("./routes/userRoute");
 const chatRoutes = require("./routes/chatRoute");
 const appointmentRoutes = require("./routes/appointmentRoute")
+const surveyRoutes = require("./routes/surveyRoute")
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/appointment", appointmentRoutes);
 app.use('/api/mood', moodRoutes);
+app.use('/api/survey', surveyRoutes);
 
 
 //Socket End
