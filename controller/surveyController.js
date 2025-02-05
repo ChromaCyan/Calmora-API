@@ -14,6 +14,17 @@ exports.createSurvey = async (req, res) => {
   }
 };
 
+// Get all surveys
+exports.getSurveys = async (req, res) => {
+  try {
+    const surveys = await Survey.find();
+    res.status(200).json({ success: true, data: surveys });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 // Submit a survey response
 exports.submitSurveyResponse = async (req, res) => {
   const { patientId, surveyId, responses, category } = req.body;
