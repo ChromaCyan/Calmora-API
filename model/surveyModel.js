@@ -4,7 +4,7 @@ const surveySchema = new mongoose.Schema({
   category: { 
     type: String, 
     required: true, 
-    enum: ['emotional_wellbeing', 'stress_levels', 'social_support', 'physical_wellness'] 
+    enum: ['mental_health'] 
   },
   questions: [{
     questionText: { type: String, required: true },

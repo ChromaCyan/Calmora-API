@@ -28,21 +28,20 @@ exports.getSurveys = async (req, res) => {
 exports.submitSurveyResponse = async (req, res) => {
   const { patientId, surveyId, responses, category } = req.body;
 
-  console.log('Received survey response data:', req.body);
-
   try {
     const totalScore = responses.reduce(
       (sum, response) => sum + response.score,
       0
     );
 
-    // Updated Interpretation of Scores (Per Category)
-    let interpretation = "Minimal or No Signs of Mental Health Problems";
-    if (totalScore >= 15 && totalScore <= 19) {
+    let interpretation = "Severe Mental Health Concerns";
+    if (totalScore >= 85 && totalScore <= 100) {
+      interpretation = "Minimal or No Signs of Mental Health Problems";
+    } else if (totalScore >= 70 && totalScore < 85) {
       interpretation = "Mild Mental Health Concerns";
-    } else if (totalScore >= 10 && totalScore <= 14) {
+    } else if (totalScore >= 50 && totalScore < 70) {
       interpretation = "Moderate Mental Health Concerns";
-    } else if (totalScore < 10) {
+    } else if (totalScore < 50) {
       interpretation = "Severe Mental Health Concerns";
     }
 
