@@ -24,21 +24,25 @@ exports.getSurveys = async (req, res) => {
   }
 };
 
-
 // Submit a survey response
 exports.submitSurveyResponse = async (req, res) => {
   const { patientId, surveyId, responses, category } = req.body;
 
-  try {
-    const totalScore = responses.reduce((sum, response) => sum + response.score, 0);
+  console.log('Received survey response data:', req.body);
 
-    // Interpretation of Scores
+  try {
+    const totalScore = responses.reduce(
+      (sum, response) => sum + response.score,
+      0
+    );
+
+    // Updated Interpretation of Scores (Per Category)
     let interpretation = "Minimal or No Signs of Mental Health Problems";
-    if (totalScore >= 5 && totalScore <= 9) {
+    if (totalScore >= 15 && totalScore <= 19) {
       interpretation = "Mild Mental Health Concerns";
     } else if (totalScore >= 10 && totalScore <= 14) {
       interpretation = "Moderate Mental Health Concerns";
-    } else if (totalScore >= 15) {
+    } else if (totalScore < 10) {
       interpretation = "Severe Mental Health Concerns";
     }
 
@@ -49,7 +53,7 @@ exports.submitSurveyResponse = async (req, res) => {
       responses,
       totalScore,
       category,
-      interpretation, 
+      interpretation,
     });
 
     await surveyResponse.save();
@@ -64,7 +68,9 @@ exports.getPatientSurveyResults = async (req, res) => {
   const { patientId } = req.params;
 
   try {
-    const results = await SurveyResponse.find({ patientId }).populate("surveyId");
+    const results = await SurveyResponse.find({ patientId }).populate(
+      "surveyId"
+    );
     res.status(200).json({ success: true, data: results });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

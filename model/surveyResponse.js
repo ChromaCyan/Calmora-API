@@ -16,7 +16,7 @@ const surveyResponseSchema = new mongoose.Schema(
       {
         questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
         choiceId: { type: mongoose.Schema.Types.ObjectId, required: true },
-        score: { type: Number, required: true, min: 1, max: 4 },
+        score: { type: Number, required: true, min: 1, max: 5 },
       },
     ],
     totalScore: { type: Number, required: true },

@@ -10,7 +10,7 @@ const surveySchema = new mongoose.Schema({
     questionText: { type: String, required: true },
     choices: [{
       text: { type: String, required: true },
-      score: { type: Number, required: true, min: 1, max: 4 }
+      score: { type: Number, required: true, min: 1, max: 5 }
     }]
   }]
 }, { timestamps: true });
