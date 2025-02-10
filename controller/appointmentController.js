@@ -43,7 +43,7 @@ exports.getPatientAppointments = async (req, res) => {
     const { patientId } = req.params;
     const appointments = await Appointment.find({ patient: patientId })
       .populate("specialist", "firstName lastName specialization")
-      .sort({ startTime: 1 }); // Sort by start time
+      .sort({ startTime: 1 });
     res.status(200).json(appointments);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -56,7 +56,7 @@ exports.getSpecialistAppointments = async (req, res) => {
     const { specialistId } = req.params;
     const appointments = await Appointment.find({ specialist: specialistId })
       .populate("patient", "firstName lastName")
-      .sort({ startTime: 1 }); // Sort by start time
+      .sort({ startTime: 1 }); 
     res.status(200).json(appointments);
   } catch (error) {
     res.status(500).json({ error: error.message });

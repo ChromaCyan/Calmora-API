@@ -83,7 +83,6 @@ exports.createUser = async (req, res) => {
   try {
     const lowerCaseEmail = email.toLowerCase();
 
-    // Check if email already exists
     const existingUser = await User.findOne({ email: lowerCaseEmail });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -112,7 +111,7 @@ exports.createUser = async (req, res) => {
     await newUser.save();
 
     const otp = generateOTP();
-    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 }; // OTP expires in 5 minutes
+    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 }; 
     await sendEmail(lowerCaseEmail, otp);
 
     const token = jwt.sign(
@@ -150,14 +149,12 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate JWT token with the user ID and userType
     const token = jwt.sign(
       { id: user._id, userType: user.userType },
       JWT_SECRET,
       { expiresIn: "3h" }
     );
 
-    // Respond with the token, user ID, and userType
     res.status(200).json({
       token,
       userId: user._id,
@@ -170,8 +167,8 @@ exports.loginUser = async (req, res) => {
 
 // Edit logged-in user's profile
 exports.editProfile = async (req, res) => {
-  const { id, userType } = req.user; // Extract user ID and userType from the token
-  const updateData = req.body; // Get the fields to update
+  const { id, userType } = req.user; 
+  const updateData = req.body; 
 
   try {
     let updatedUser;
@@ -207,7 +204,7 @@ exports.editProfile = async (req, res) => {
 // Get list of specialists
 exports.getSpecialistList = async (req, res) => {
   try {
-    const specialists = await Specialist.find({}, "-password"); // Exclude passwords for security
+    const specialists = await Specialist.find({}, "-password"); 
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -237,7 +234,7 @@ exports.getSpecialistById = async (req, res) => {
 
   try {
     const specialist = await Specialist.findById(specialistId).select(
-      '-password' // Exclude the password field for security
+      '-password' 
     );
 
     if (!specialist) {
