@@ -1,5 +1,6 @@
 const Article = require('../model/articlesModel');
 const Specialist = require('../model/userModel');
+const mongoose = require("mongoose");
 
 // Create a new article
 exports.createArticle = async (req, res) => {
@@ -27,6 +28,68 @@ exports.createArticle = async (req, res) => {
     res.status(500).json({ message: 'Error creating article', error: error.message });
   }
 };
+
+// Get articles for a specific specialist
+exports.getArticlesBySpecialist = async (req, res) => {
+  try {
+    const { specialistId } = req.params;
+
+    console.log("Received specialistId:", specialistId);
+
+    console.log(mongoose.Types.ObjectId.isValid("678f00576fe57648a903c569"));
+    
+    if (!mongoose.Types.ObjectId.isValid(specialistId)) {
+      return res.status(400).json({ message: "Invalid specialist ID format" });
+    }
+
+    console.log("Fetching articles for specialistId:", specialistId);
+
+    const articles = await Article.find({ specialistId })
+      .populate("specialistId", "firstName lastName profileImage");
+
+    if (!articles || articles.length === 0) {
+      return res.status(404).json({ message: "No articles found for this specialist" });
+    }
+
+    res.status(200).json(articles);
+  } catch (error) {
+    console.error("Error fetching articles:", error);
+    res.status(500).json({ message: "Error fetching specialist articles", error: error.message });
+  }
+};
+
+
+
+// Edit an article
+exports.updateArticle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, heroImage, additionalImages, specialistId } = req.body;
+
+    // Find the article
+    const article = await Article.findById(id);
+    if (!article) {
+      return res.status(404).json({ message: 'Article not found' });
+    }
+
+    // Check if the specialist is the owner of the article
+    if (article.specialistId.toString() !== specialistId) {
+      return res.status(403).json({ message: 'Unauthorized to edit this article' });
+    }
+
+    // Update the article fields
+    article.title = title || article.title;
+    article.content = content || article.content;
+    article.heroImage = heroImage || article.heroImage;
+    article.additionalImages = additionalImages || article.additionalImages;
+
+    await article.save();
+    res.status(200).json({ message: 'Article updated successfully', article });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating article', error: error.message });
+  }
+};
+
 
 // Get all articles
 exports.getAllArticles = async (req, res) => {
