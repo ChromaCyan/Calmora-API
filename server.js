@@ -1,34 +1,27 @@
+//Dependency Imports
 const express = require("express");
 const http = require("http"); 
-const { Server } = require("socket.io");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const Chat = require('./model/chatModel');
-const chatController = require('./controller/chatController'); 
+const initializeSocket = require("./socket/socket");
 
-dotenv.config();
 //Route Imports
 const moodRoutes = require('./routes/moodRoutes');
 const authRoutes = require("./routes/userRoute");
 const chatRoutes = require("./routes/chatRoute");
 const appointmentRoutes = require("./routes/appointmentRoute")
 const surveyRoutes = require("./routes/surveyRoute")
+const articleRoutes = require("./routes/articleRoute")
 
+//Important Imports
 const app = express();
-
-const server = http.createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: "*", 
-    methods: ["GET", "POST"],
-  },
-});
-
+dotenv.config();
 app.use(cors());
 app.use(bodyParser.json());
+const server = http.createServer(app);
 
 // MongoDB Connection
 mongoose
@@ -38,63 +31,26 @@ mongoose
 
 const db = mongoose.connection.useDb("Armstrong");
 
+//Use socket.io
+initializeSocket(server);
+
 // Routes
 app.get("/", (req, res) => res.send("Express on Vercel"));
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from the API!" });
 });
+//Chat API
 app.use("/api/chat", chatRoutes);
+//Authentication API
 app.use("/api/auth", authRoutes);
+//Appointment API
 app.use("/api/appointment", appointmentRoutes);
+//Mood API
 app.use('/api/mood', moodRoutes);
+//Survey API
 app.use('/api/survey', surveyRoutes);
-
-
-//Socket End
-io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  socket.on("sendMessage", async (data) => {
-    console.log("Message received: ", data);
-
-    const { senderId, recipientId, message, chatId } = data;
-
-    try {
-      let chat = await Chat.findById(chatId);
-
-      if (!chat) {
-        chat = new Chat({
-          _id: chatId,
-          participants: [senderId, recipientId],
-          messages: [],
-        });
-      }
-
-      const newMessage = {
-        sender: senderId,
-        content: message,
-        timestamp: new Date(),
-      };
-
-      chat.messages.push(newMessage);
-      await chat.save();
-
-      io.to(recipientId).emit("receiveMessage", { chatId, senderId, message: newMessage });
-
-    } catch (error) {
-      console.error("Error saving message:", error);
-    }
-  });
-
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${socket.id} joined room ${roomId}`);
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
+//Article API
+app.use('/api/article', articleRoutes);
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
