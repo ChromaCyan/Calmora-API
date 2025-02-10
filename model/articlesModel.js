@@ -8,7 +8,7 @@ const articleSchema = new mongoose.Schema(
     additionalImages: [{ type: String }],
     specialistId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Specialist",
       required: true,
     },
     publishedDate: { type: Date, default: Date.now },

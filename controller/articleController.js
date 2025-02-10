@@ -31,7 +31,7 @@ exports.createArticle = async (req, res) => {
 // Get all articles
 exports.getAllArticles = async (req, res) => {
   try {
-    const articles = await Article.find().populate('specialist', 'firstName lastName profileImage');
+    const articles = await Article.find().populate('specialistId', 'firstName lastName profileImage');
     res.status(200).json(articles);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching articles', error: error.message });
@@ -41,7 +41,7 @@ exports.getAllArticles = async (req, res) => {
 // Get a single article by ID
 exports.getArticleById = async (req, res) => {
   try {
-    const article = await Article.findById(req.params.id).populate('specialist', 'firstName lastName profileImage');
+    const article = await Article.findById(req.params.id).populate('specialistId', 'firstName lastName profileImage');
     if (!article) {
       return res.status(404).json({ message: 'Article not found' });
     }

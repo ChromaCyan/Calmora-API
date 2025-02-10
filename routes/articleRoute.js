@@ -7,12 +7,12 @@ const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMidd
 router.post('/create-article', verifyToken, isSpecialist, articleController.createArticle);
 
 // Get all articles
-router.get('/articles', verifyToken, isSpecialist, articleController.getAllArticles);
+router.get('/articles', verifyToken, isPatient, articleController.getAllArticles);
 
 // Get an article by ID
-router.get('/article/:id', verifyToken, isSpecialist, articleController.getArticleById);
+router.get('/:id', verifyToken, isPatient, articleController.getArticleById);
 
 // Delete an article
-router.delete('/article/:id', verifyToken, isSpecialist, articleController.deleteArticle);
+router.delete('/:id', verifyToken, isSpecialist, articleController.deleteArticle);
 
 module.exports = router;
