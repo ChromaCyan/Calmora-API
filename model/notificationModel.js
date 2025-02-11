@@ -1,8 +1,11 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema({
-    title: { type: String, required: true},
-    description: { type: String, required: true},
-    timestamp: { type: date},
-})
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  type: { type: String, enum: ["chat", "appointment"], required: true },
+  message: { type: String, required: true },
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+});
+
+module.exports = mongoose.model("Notification", notificationSchema);

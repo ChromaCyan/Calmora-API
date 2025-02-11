@@ -1,6 +1,8 @@
 const Chat = require('../model/chatModel');
 const User = require('../model/userModel');
+const { createNotification } = require("../controller/notificationController");
 
+// Create a new chat session.
 exports.createChat = async (req, res) => {
     try {
         const userId = req.user.id; 
@@ -21,6 +23,7 @@ exports.createChat = async (req, res) => {
     }
 };
 
+// Send message to existing chat
 exports.sendMessage = async (req, res) => {
     try {
         const { chatId, content } = req.body;
@@ -30,10 +33,10 @@ exports.sendMessage = async (req, res) => {
         console.log("User ID:", userId);
 
         const chat = await Chat.findById(chatId);
-        if (!chat) return res.status(404).json({ error: 'Chat not found.' });
+        if (!chat) return res.status(404).json({ error: "Chat not found." });
 
         const sender = await User.findById(userId);
-        if (!sender) return res.status(404).json({ error: 'Sender not found.' });
+        if (!sender) return res.status(404).json({ error: "Sender not found." });
 
         console.log("Sender:", sender);
 
@@ -41,18 +44,27 @@ exports.sendMessage = async (req, res) => {
             sender: userId,
             firstName: sender.firstName,
             lastName: sender.lastName,
-            content
+            content,
         });
 
         await chat.save();
 
-        res.status(200).json({ message: 'Message sent.', chat });
+        // Get recipientId (other participant in chat)
+        const recipientId = chat.participants.find((id) => id.toString() !== userId.toString());
+
+        // Save notification for recipient
+        if (recipientId) {
+            await createNotification(recipientId, "chat", `New message from ${sender.firstName}`);
+        }
+
+        res.status(200).json({ message: "Message sent.", chat });
     } catch (error) {
-        console.error(error);  
-        res.status(500).json({ error: 'Failed to send message.' });
+        console.error(error);
+        res.status(500).json({ error: "Failed to send message." });
     }
 };
 
+// Get Chat List
 exports.getChatList = async (req, res) => {
     try {
         const userId = req.user.id; 

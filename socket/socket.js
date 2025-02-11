@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const Chat = require("../model/chatModel");
+const { createNotification } = require("../controller/notificationController");
 
 function initializeSocket(server) {
   const io = new Server(server, {
@@ -35,7 +36,29 @@ function initializeSocket(server) {
         chat.messages.push(newMessage);
         await chat.save();
 
-        io.to(recipientId).emit("receiveMessage", { chatId, senderId, message: newMessage });
+        // Send message to receiver
+        io.to(recipientId).emit("receiveMessage", {
+          chatId,
+          senderId,
+          message: newMessage,
+        });
+
+        // Save the notification to the database
+        await createNotification(
+          recipientId,
+          "chat",
+          `New message from user ${senderId}`
+        );
+
+        // Send notification via WebSocket
+        io.to(recipientId).emit("new_notification", {
+          type: "chat",
+          senderId,
+          chatId,
+          message: newMessage.content,
+          timestamp: newMessage.timestamp,
+        });
+        
       } catch (error) {
         console.error("Error saving message:", error);
       }

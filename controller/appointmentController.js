@@ -1,5 +1,7 @@
 const Appointment = require("../model/appointmentModel");
 const User = require("../model/userModel");
+const { io } = require("../socket/socket");
+const { createNotification } = require("./notificationController");
 
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
@@ -29,6 +31,16 @@ exports.createAppointment = async (req, res) => {
       startTime,
       endTime,
       message,
+    });
+
+    // Notification for specialist about the new appointment
+    await createNotification(specialistId, "appointment", "You have a new appointment request.");
+
+    io.to(specialistId).emit("new_notification", {
+      type: "appointment",
+      message: `New appointment created by ${patientId}`,
+      appointmentId: appointment._id,
+      timestamp: new Date(),
     });
 
     res.status(201).json({ message: "Appointment created successfully", appointment });
@@ -72,6 +84,19 @@ exports.acceptAppointment = async (req, res) => {
       { status: "accepted" },
       { new: true }
     );
+
+    const patient = await User.findById(appointment.patient);
+    
+    // Notification for patient about the acceptance
+    await createNotification(appointment.patient, "appointment", "Your appointment has been accepted.");
+    io.to(patient._id).emit("new_notification", {
+      type: "appointment",
+      message: `Your appointment with ${appointment.specialist} has been accepted.`,
+      appointmentId: appointment._id,
+      timestamp: new Date(),
+    });
+
+
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -87,6 +112,18 @@ exports.declineAppointment = async (req, res) => {
       { status: "declined" },
       { new: true }
     );
+
+    const patient = await User.findById(appointment.patient);
+    
+    // Notification for patient about the decline
+    await createNotification(appointment.patient, "appointment", "Your appointment has been rejected.");
+    io.to(patient._id).emit("new_notification", {
+      type: "appointment",
+      message: `Your appointment with ${appointment.specialist} has been declined.`,
+      appointmentId: appointment._id,
+      timestamp: new Date(),
+    });
+
     res.status(200).json({ message: "Appointment declined", appointment });
   } catch (error) {
     res.status(500).json({ error: error.message });

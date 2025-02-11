@@ -15,6 +15,7 @@ const chatRoutes = require("./routes/chatRoute");
 const appointmentRoutes = require("./routes/appointmentRoute")
 const surveyRoutes = require("./routes/surveyRoute")
 const articleRoutes = require("./routes/articleRoute")
+const notificationRoutes = require("./routes/notificationRoute")
 
 //Important Imports
 const app = express();
@@ -51,10 +52,13 @@ app.use('/api/mood', moodRoutes);
 app.use('/api/survey', surveyRoutes);
 //Article API
 app.use('/api/article', articleRoutes);
+//Notification API
+app.use('/api/notification', notificationRoutes);
 
+//Server Start
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
 
-module.exports = { app };
+module.exports = { app, server };
