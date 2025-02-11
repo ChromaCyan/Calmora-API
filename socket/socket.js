@@ -22,7 +22,7 @@ function initializeSocket(server) {
         if (!chat) {
           chat = new Chat({
             _id: chatId,
-            participants: [senderId, recipientId],
+            participants: [senderId, recipientId], 
             messages: [],
           });
         }
@@ -50,6 +50,7 @@ function initializeSocket(server) {
           `New message from user ${senderId}`
         );
 
+        console.log("📩 Sending notification: "),
         // Send notification via WebSocket
         io.to(recipientId).emit("new_notification", {
           type: "chat",

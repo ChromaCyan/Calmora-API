@@ -35,3 +35,16 @@ exports.markNotificationAsRead = async (req, res) => {
     res.status(500).json({ error: "Failed to update notification." });
   }
 };
+
+// Mark all notifications as read for a specific user
+exports.markAllNotificationsAsRead = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    await Notification.updateMany({ userId, isRead: false }, { isRead: true });
+
+    res.status(200).json({ message: "All notifications marked as read." });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to mark all notifications as read." });
+  }
+};
