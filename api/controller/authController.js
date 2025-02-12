@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
+const bcrypt = require('bcryptjs');
 
 dotenv.config();
 
@@ -136,24 +136,17 @@ exports.loginUser = async (req, res) => {
 
   try {
     const lowerCaseEmail = email.toLowerCase();
-
-    const user = await User.findOne({ email: email.toLowerCase() });
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      user =
-        (await Patient.findOne({ email: lowerCaseEmail })) ||
-        (await Specialist.findOne({ email: lowerCaseEmail }));
+      user = (await Patient.findOne({ email: lowerCaseEmail })) || (await Specialist.findOne({ email: lowerCaseEmail }));
     }
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { id: user._id, userType: user.userType },
-      JWT_SECRET,
-      { expiresIn: "4d" }
-    );
+    const token = jwt.sign({ id: user._id, userType: user.userType }, JWT_SECRET, { expiresIn: "4d" });
 
     res.status(200).json({
       token,
