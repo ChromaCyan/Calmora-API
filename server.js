@@ -1,4 +1,4 @@
-//Dependency Imports
+// Dependency Imports
 const express = require("express");
 const http = require("http"); 
 const bodyParser = require("body-parser");
@@ -8,16 +8,16 @@ const cors = require("cors");
 const Chat = require('./model/chatModel');
 const initializeSocket = require("./socket/socket");
 
-//Route Imports
+// Route Imports
 const moodRoutes = require('./routes/moodRoutes');
 const authRoutes = require("./routes/userRoute");
 const chatRoutes = require("./routes/chatRoute");
-const appointmentRoutes = require("./routes/appointmentRoute")
-const surveyRoutes = require("./routes/surveyRoute")
-const articleRoutes = require("./routes/articleRoute")
-const notificationRoutes = require("./routes/notificationRoute")
+const appointmentRoutes = require("./routes/appointmentRoute");
+const surveyRoutes = require("./routes/surveyRoute");
+const articleRoutes = require("./routes/articleRoute");
+const notificationRoutes = require("./routes/notificationRoute");
 
-//Important Imports
+// Important Imports
 const app = express();
 dotenv.config();
 app.use(cors());
@@ -32,7 +32,7 @@ mongoose
 
 const db = mongoose.connection.useDb("Armstrong");
 
-//Use socket.io
+// Use socket.io
 initializeSocket(server);
 
 // Routes
@@ -40,25 +40,20 @@ app.get("/", (req, res) => res.send("Express on Vercel"));
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from the API!" });
 });
-//Chat API
+// Chat API
 app.use("/api/chat", chatRoutes);
-//Authentication API
+// Authentication API
 app.use("/api/auth", authRoutes);
-//Appointment API
+// Appointment API
 app.use("/api/appointment", appointmentRoutes);
-//Mood API
+// Mood API
 app.use('/api/mood', moodRoutes);
-//Survey API
+// Survey API
 app.use('/api/survey', surveyRoutes);
-//Article API
+// Article API
 app.use('/api/article', articleRoutes);
-//Notification API
+// Notification API
 app.use('/api/notification', notificationRoutes);
 
-//Server Start
-const port = process.env.PORT || 5000;
-server.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
-
-module.exports = { app, server };
+// Export the server for Vercel to use
+module.exports = server;
