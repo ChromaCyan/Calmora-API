@@ -1,6 +1,6 @@
 // Dependency Imports
 const express = require("express");
-const http = require("http"); 
+const http = require("http");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -22,7 +22,6 @@ const app = express();
 dotenv.config();
 app.use(cors());
 app.use(bodyParser.json());
-const server = http.createServer(app);
 
 // MongoDB Connection
 mongoose
@@ -33,27 +32,18 @@ mongoose
 const db = mongoose.connection.useDb("Armstrong");
 
 // Use socket.io
-initializeSocket(server);
+initializeSocket(http.createServer(app));  // Use the HTTP server for socket.io
 
 // Routes
 app.get("/", (req, res) => res.send("Express on Vercel"));
-app.get("/api", (req, res) => {
-  res.json({ message: "Hello from the API!" });
-});
-// Chat API
+app.get("/api", (req, res) => res.json({ message: "Hello from the API!" }));
 app.use("/api/chat", chatRoutes);
-// Authentication API
 app.use("/api/auth", authRoutes);
-// Appointment API
 app.use("/api/appointment", appointmentRoutes);
-// Mood API
-app.use('/api/mood', moodRoutes);
-// Survey API
-app.use('/api/survey', surveyRoutes);
-// Article API
-app.use('/api/article', articleRoutes);
-// Notification API
-app.use('/api/notification', notificationRoutes);
+app.use("/api/mood", moodRoutes);
+app.use("/api/survey", surveyRoutes);
+app.use("/api/article", articleRoutes);
+app.use("/api/notification", notificationRoutes);
 
-// Export the server for Vercel to use
-module.exports = server;
+// Export the app to allow Vercel to handle it
+module.exports = app;
