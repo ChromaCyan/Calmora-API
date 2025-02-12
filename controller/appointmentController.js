@@ -14,6 +14,17 @@ exports.createAppointment = async (req, res) => {
       return res.status(404).json({ error: "Specialist not found" });
     }
 
+    // Check if the patient already has an appointment with this specialist
+    const existingAppointment = await Appointment.findOne({
+      patient: patientId,
+      specialist: specialistId,
+      status: { $nin: ["completed", "declined"] }, 
+    });
+
+    if (existingAppointment) {
+      return res.status(400).json({ error: "You already have an active appointment with this specialist" });
+    }
+
     // Calculate endTime (1 hour after startTime)
     const endTime = new Date(startTime);
     endTime.setHours(endTime.getHours() + 1);
@@ -102,6 +113,8 @@ exports.acceptAppointment = async (req, res) => {
     //   appointmentId: appointment._id,
     //   timestamp: new Date(),
     // });
+
+    await createNotification(patient._id, "appointment", "Your appointment has been accepted.");
 
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
