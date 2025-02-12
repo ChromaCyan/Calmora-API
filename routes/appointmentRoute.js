@@ -18,4 +18,10 @@ router.put("/:appointmentId/accept", verifyToken, isSpecialist, appointmentContr
 // Specialist declines an appointment (Specialist only)
 router.put("/:appointmentId/decline", verifyToken, isSpecialist, appointmentController.declineAppointment);
 
+// Specialist completes an appointment (Specialist only)
+router.post("/:apppoinmentId/complete", verifyToken, isSpecialist, appointmentController.completeAppointment);
+
+// Get all list of completed appointment (Both Users)
+router.get("/appointments/completed/:userId", appointmentController.getCompletedAppointments);
+
 module.exports = router;

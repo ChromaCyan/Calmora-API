@@ -83,7 +83,7 @@ exports.acceptAppointment = async (req, res) => {
       appointmentId,
       { status: "accepted" },
       { new: true }
-    ).populate("patient specialist", "firstName lastName"); // <-- Ensure patient and specialist are populated
+    ).populate("patient specialist", "firstName lastName"); 
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
@@ -105,7 +105,7 @@ exports.acceptAppointment = async (req, res) => {
 
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
-    console.error("Error accepting appointment:", error); // Debugging log
+    console.error("Error accepting appointment:", error); 
     res.status(500).json({ error: error.message });
   }
 };
@@ -119,7 +119,7 @@ exports.declineAppointment = async (req, res) => {
       appointmentId,
       { status: "declined" },
       { new: true }
-    ).populate("patient specialist", "firstName lastName"); // Ensure populated data
+    ).populate("patient specialist", "firstName lastName"); 
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
@@ -141,7 +141,70 @@ exports.declineAppointment = async (req, res) => {
 
     res.status(200).json({ message: "Appointment declined", appointment });
   } catch (error) {
-    console.error("Error declining appointment:", error); // Debugging log
+    console.error("Error declining appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Specialist completes an appointment
+exports.completeAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { feedback, imageUrl } = req.body; 
+
+    // Validate input
+    if (!feedback || !imageUrl) {
+      return res.status(400).json({ error: "Feedback and image URL are required to complete the appointment." });
+    }
+
+    // Find the appointment
+    const appointment = await Appointment.findById(appointmentId).populate("patient specialist");
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    // Check if the appointment is already completed
+    if (appointment.status === "completed") {
+      return res.status(400).json({ error: "This appointment is already completed." });
+    }
+
+    // Update appointment details
+    appointment.status = "completed";
+    appointment.feedback = feedback;
+    appointment.imageUrl = imageUrl; 
+    await appointment.save();
+
+    // Notify patient that their appointment is completed
+    await createNotification(
+      appointment.patient._id,
+      "appointment",
+      `Your appointment with ${appointment.specialist.firstName} has been marked as completed.`
+    );
+
+    res.status(200).json({ message: "Appointment completed successfully", appointment });
+  } catch (error) {
+    console.error("Error completing appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getCompletedAppointments = async (req, res) => {
+  try {
+    const { userId } = req.params; 
+
+    const appointments = await Appointment.find({
+      $or: [{ patient: userId }, { specialist: userId }],
+      status: "completed"
+    })
+      .populate("specialist", "firstName lastName specialization")
+      .populate("patient", "firstName lastName")
+      .select("startTime endTime status feedback imageUrl specialist patient") 
+      .sort({ startTime: -1 }); 
+
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error("Error fetching completed appointments:", error);
     res.status(500).json({ error: error.message });
   }
 };
