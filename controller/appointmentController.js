@@ -2,6 +2,8 @@ const Appointment = require("../model/appointmentModel");
 const User = require("../model/userModel");
 const { io } = require("../socket/socket");
 const { createNotification } = require("./notificationController");
+const Availability = require("../model/availabilityModel");
+
 
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
@@ -25,11 +27,33 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ error: "You already have an active appointment with this specialist" });
     }
 
+    // Get specialist's availability
+    const availability = await Availability.findOne({ specialist: specialistId });
+    if (!availability) {
+      return res.status(404).json({ error: "Specialist's availability not set" });
+    }
+
+    // Check if the selected start time is available (compare against time slots)
+    const startDate = new Date(startTime);
+    const dayOfWeek = startDate.toLocaleString('en-us', { weekday: 'long' });
+
+    const isAvailable = availability.timeSlots.some(slot => {
+      return (
+        slot.day === dayOfWeek &&
+        startDate >= new Date(`${startDate.toDateString()} ${slot.startTime}`) &&
+        startDate <= new Date(`${startDate.toDateString()} ${slot.endTime}`)
+      );
+    });
+
+    if (!isAvailable) {
+      return res.status(400).json({ error: "The selected time slot is unavailable" });
+    }
+
     // Calculate endTime (1 hour after startTime)
     const endTime = new Date(startTime);
     endTime.setHours(endTime.getHours() + 1);
 
-    // Check for overlapping appointments
+    // Check for overlapping appointments (same specialist and same time range)
     const isOverlap = await Appointment.checkOverlap(specialistId, startTime, endTime);
     if (isOverlap) {
       return res.status(400).json({ error: "This time slot is already booked" });
@@ -47,18 +71,68 @@ exports.createAppointment = async (req, res) => {
     // Notification for specialist about the new appointment
     await createNotification(specialistId, "appointment", "You have a new appointment request.");
 
-    // io.to(specialistId).emit("new_notification", {
-    //   type: "appointment",
-    //   message: `New appointment created by ${patientId}`,
-    //   appointmentId: appointment._id,
-    //   timestamp: new Date(),
-    // });
-
     res.status(201).json({ message: "Appointment created successfully", appointment });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+// // Create a new appointment
+// exports.createAppointment = async (req, res) => {
+//   try {
+//     const { patientId, specialistId, startTime, message } = req.body;
+
+//     // Validate that the specialist exists
+//     const specialist = await User.findById(specialistId);
+//     if (!specialist || specialist.userType !== "Specialist") {
+//       return res.status(404).json({ error: "Specialist not found" });
+//     }
+
+//     // Check if the patient already has an appointment with this specialist
+//     const existingAppointment = await Appointment.findOne({
+//       patient: patientId,
+//       specialist: specialistId,
+//       status: { $nin: ["completed", "declined"] }, 
+//     });
+
+//     if (existingAppointment) {
+//       return res.status(400).json({ error: "You already have an active appointment with this specialist" });
+//     }
+
+//     // Calculate endTime (1 hour after startTime)
+//     const endTime = new Date(startTime);
+//     endTime.setHours(endTime.getHours() + 1);
+
+//     // Check for overlapping appointments
+//     const isOverlap = await Appointment.checkOverlap(specialistId, startTime, endTime);
+//     if (isOverlap) {
+//       return res.status(400).json({ error: "This time slot is already booked" });
+//     }
+
+//     // Create the appointment
+//     const appointment = await Appointment.create({
+//       patient: patientId,
+//       specialist: specialistId,
+//       startTime,
+//       endTime,
+//       message,
+//     });
+
+//     // Notification for specialist about the new appointment
+//     await createNotification(specialistId, "appointment", "You have a new appointment request.");
+
+//     // io.to(specialistId).emit("new_notification", {
+//     //   type: "appointment",
+//     //   message: `New appointment created by ${patientId}`,
+//     //   appointmentId: appointment._id,
+//     //   timestamp: new Date(),
+//     // });
+
+//     res.status(201).json({ message: "Appointment created successfully", appointment });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
 // Get all appointments for a patient
 exports.getPatientAppointments = async (req, res) => {

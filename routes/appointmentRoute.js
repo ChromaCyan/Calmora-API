@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const appointmentController = require("../controller/appointmentController");
+const availabilityController = require("../controller/availabilityController");
 const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMiddleware");
+
+////////////////////////////////////////////////////////////
+// Appointment Routes
 
 // Create a new appointment (Patient only)
 router.post("/create-appointment", verifyToken, isPatient, appointmentController.createAppointment);
@@ -23,5 +27,13 @@ router.post("/:appointmentId/complete", verifyToken, isSpecialist, appointmentCo
 
 // Get all list of completed appointment (Both Users)
 router.get("/appointments/completed/:userId", appointmentController.getCompletedAppointments);
+
+// Create a new appointment (Patient only)
+router.post("/create-appointment", verifyToken, isPatient, appointmentController.createAppointment);
+
+////////////////////////////////////////////////////////////
+// Availability Routes
+router.get("/specialist/:specialistId/availability", verifyToken, availabilityController.getAvailableDaysAndSlots); 
+router.post("/specialist/:specialistId", verifyToken, isSpecialist, availabilityController.setAvailableDaysAndSlots); 
 
 module.exports = router;
