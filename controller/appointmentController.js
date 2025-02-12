@@ -36,12 +36,12 @@ exports.createAppointment = async (req, res) => {
     // Notification for specialist about the new appointment
     await createNotification(specialistId, "appointment", "You have a new appointment request.");
 
-    io.to(specialistId).emit("new_notification", {
-      type: "appointment",
-      message: `New appointment created by ${patientId}`,
-      appointmentId: appointment._id,
-      timestamp: new Date(),
-    });
+    // io.to(specialistId).emit("new_notification", {
+    //   type: "appointment",
+    //   message: `New appointment created by ${patientId}`,
+    //   appointmentId: appointment._id,
+    //   timestamp: new Date(),
+    // });
 
     res.status(201).json({ message: "Appointment created successfully", appointment });
   } catch (error) {
@@ -83,25 +83,33 @@ exports.acceptAppointment = async (req, res) => {
       appointmentId,
       { status: "accepted" },
       { new: true }
-    );
+    ).populate("patient specialist", "firstName lastName"); // <-- Ensure patient and specialist are populated
 
-    const patient = await User.findById(appointment.patient);
-    
-    // Notification for patient about the acceptance
-    await createNotification(appointment.patient, "appointment", "Your appointment has been accepted.");
-    io.to(patient._id).emit("new_notification", {
-      type: "appointment",
-      message: `Your appointment with ${appointment.specialist} has been accepted.`,
-      appointmentId: appointment._id,
-      timestamp: new Date(),
-    });
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
 
+    const patient = appointment.patient;
+    if (!patient) {
+      return res.status(400).json({ error: "Patient data missing in appointment" });
+    }
+
+    // Notification for patient
+    // await createNotification(patient._id, "appointment", "Your appointment has been accepted.");
+    // io.to(patient._id).emit("new_notification", {
+    //   type: "appointment",
+    //   message: `Your appointment with ${appointment.specialist.firstName} has been accepted.`,
+    //   appointmentId: appointment._id,
+    //   timestamp: new Date(),
+    // });
 
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
+    console.error("Error accepting appointment:", error); // Debugging log
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Specialist declines an appointment
 exports.declineAppointment = async (req, res) => {
@@ -111,21 +119,29 @@ exports.declineAppointment = async (req, res) => {
       appointmentId,
       { status: "declined" },
       { new: true }
-    );
+    ).populate("patient specialist", "firstName lastName"); // Ensure populated data
 
-    const patient = await User.findById(appointment.patient);
-    
-    // Notification for patient about the decline
-    await createNotification(appointment.patient, "appointment", "Your appointment has been rejected.");
-    io.to(patient._id).emit("new_notification", {
-      type: "appointment",
-      message: `Your appointment with ${appointment.specialist} has been declined.`,
-      appointmentId: appointment._id,
-      timestamp: new Date(),
-    });
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    const patient = appointment.patient;
+    if (!patient) {
+      return res.status(400).json({ error: "Patient data missing in appointment" });
+    }
+
+    // Notification for patient
+    await createNotification(patient._id, "appointment", "Your appointment has been rejected.");
+    // io.to(patient._id).emit("new_notification", {
+    //   type: "appointment",
+    //   message: `Your appointment with ${appointment.specialist.firstName} has been declined.`,
+    //   appointmentId: appointment._id,
+    //   timestamp: new Date(),
+    // });
 
     res.status(200).json({ message: "Appointment declined", appointment });
   } catch (error) {
+    console.error("Error declining appointment:", error); // Debugging log
     res.status(500).json({ error: error.message });
   }
 };
