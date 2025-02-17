@@ -12,6 +12,19 @@ const articleSchema = new mongoose.Schema(
       required: true,
     },
     publishedDate: { type: Date, default: Date.now },
+    categories: {
+      type: [String], 
+      enum: [
+        "health",
+        "social",
+        "relationships",
+        "growth",
+        "coping strategies",
+        "mental wellness",
+        "self-care",
+      ],
+      required: true,
+    },
   },
   { timestamps: true }
 );

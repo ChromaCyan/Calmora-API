@@ -75,3 +75,40 @@ exports.getPatientSurveyResults = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Get recommended articles based on the latest survey interpretation
+exports.getRecommendedArticles = async (req, res) => {
+  try {
+    const { id: patientId } = req.params;
+
+    // Fetch the latest survey response for the patient
+    const latestSurvey = await SurveyResponse.findOne({ patient: patientId })
+      .sort({ createdAt: -1 })
+      .select("interpretation");
+
+    if (!latestSurvey) {
+      return res.status(404).json({ message: "No survey responses found" });
+    }
+
+    const categoryMapping = {
+      "Minimal or No Signs of Mental Health Problems": ["growth", "mental wellness"],
+      "Mild Mental Health Concerns": ["coping strategies", "self-care"],
+      "Moderate Mental Health Concerns": ["mental wellness", "coping strategies"],
+      "Severe Mental Health Concerns": ["mental wellness", "coping strategies", "self-care"],
+    };
+
+    const categoriesToRecommend = categoryMapping[latestSurvey.interpretation] || [];
+
+    if (categoriesToRecommend.length === 0) {
+      return res.status(404).json({ message: "No relevant articles found" });
+    }
+
+    const recommendedArticles = await Article.find({
+      categories: { $in: categoriesToRecommend },
+    }).populate("specialistId", "firstName lastName profileImage");
+
+    res.status(200).json(recommendedArticles);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching recommended articles", error: error.message });
+  }
+};

@@ -15,4 +15,7 @@ router.get("/all", surveyController.getSurveys);
 // Get survey results for a patient
 router.get("/results/:patientId", verifyToken, isPatient,surveyController.getPatientSurveyResults);
 
+// Get articles based on survey results
+router.get("/patient/:id/recommended-articles", verifyToken, isPatient, surveyController.getRecommendedArticles);
+
 module.exports = router;
