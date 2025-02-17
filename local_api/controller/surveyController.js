@@ -1,5 +1,6 @@
 const Survey = require("../model/surveyModel");
 const SurveyResponse = require("../model/surveyResponse");
+const Article = require("../model/articlesModel");
 
 // Create a new survey
 exports.createSurvey = async (req, res) => {
@@ -90,24 +91,32 @@ exports.getRecommendedArticles = async (req, res) => {
       return res.status(404).json({ message: "No survey responses found" });
     }
 
+    // Define the mapping of interpretation to article categories
     const categoryMapping = {
-      "Minimal or No Signs of Mental Health Problems": ["growth", "mental wellness"],
-      "Mild Mental Health Concerns": ["coping strategies", "self-care"],
-      "Moderate Mental Health Concerns": ["mental wellness", "coping strategies"],
+      "Minimal or No Signs of Mental Health Problems": ["growth", "mental wellness", "health", "social"],
+      "Mild Mental Health Concerns": ["coping strategies", "self-care", "health", "relationships"],
+      "Moderate Mental Health Concerns": ["mental wellness", "coping strategies", "self-care", "relationships"],
       "Severe Mental Health Concerns": ["mental wellness", "coping strategies", "self-care"],
     };
 
+    // Get the categories to recommend based on the interpretation
     const categoriesToRecommend = categoryMapping[latestSurvey.interpretation] || [];
 
     if (categoriesToRecommend.length === 0) {
       return res.status(404).json({ message: "No relevant articles found" });
     }
 
+    // Fetch articles that match the recommended categories
     const recommendedArticles = await Article.find({
       categories: { $in: categoriesToRecommend },
     }).populate("specialistId", "firstName lastName profileImage");
 
-    res.status(200).json(recommendedArticles);
+    // Return the articles if found
+    if (recommendedArticles.length > 0) {
+      return res.status(200).json(recommendedArticles);
+    } else {
+      return res.status(404).json({ message: "No articles found for the selected categories" });
+    }
   } catch (error) {
     res.status(500).json({ message: "Error fetching recommended articles", error: error.message });
   }
