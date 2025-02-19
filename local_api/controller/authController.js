@@ -29,19 +29,17 @@ const sendEmail = async (email, otp) => {
     const mailOptions = {
       from: `"Armstrong Support" <${process.env.EMAIL}>`,
       to: email,
-      subject: "Welcome to Armstrong - Verify Your Email",
-      text: `Welcome to Armstrong!
-
-We’re excited to have you on board. To complete your sign-up, please use the following OTP to verify your email:
-
-OTP Code: ${otp}
-
-This code will expire in 5 minutes. Please do not share it with anyone.
-
-If you did not create an account with Armstrong, you can safely ignore this email.
-
-Thank you,  
-The Armstrong Team`,
+      subject: "Welcome to Armstrong – Your Mental Health Matters",
+      text: `Welcome to Armstrong!  
+    
+    We’re glad to have you join our community. Armstrong is a platform dedicated to supporting men's mental health, providing a safe space to connect with specialists, track your well-being, and access resources that empower you on your journey.  
+    
+    Taking care of your mental health is just as important as your physical health, and you don’t have to do it alone. We’re here to help every step of the way.  
+    
+    If you ever have any questions or need support, feel free to reach out.  
+    
+    Stay strong,  
+    The Armstrong Team`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -111,7 +109,7 @@ exports.createUser = async (req, res) => {
     await newUser.save();
 
     const otp = generateOTP();
-    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 }; 
+    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 };
     await sendEmail(lowerCaseEmail, otp);
 
     const token = jwt.sign(
@@ -167,8 +165,8 @@ exports.loginUser = async (req, res) => {
 
 // Edit logged-in user's profile
 exports.editProfile = async (req, res) => {
-  const { id, userType } = req.user; 
-  const updateData = req.body; 
+  const { id, userType } = req.user;
+  const updateData = req.body;
 
   try {
     let updatedUser;
@@ -204,7 +202,7 @@ exports.editProfile = async (req, res) => {
 // Get list of specialists
 exports.getSpecialistList = async (req, res) => {
   try {
-    const specialists = await Specialist.find({}, "-password"); 
+    const specialists = await Specialist.find({}, "-password");
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -234,13 +232,13 @@ exports.getSpecialistById = async (req, res) => {
 
   try {
     const specialist = await Specialist.findById(specialistId).select(
-      '-password' 
+      "-password"
     );
 
     if (!specialist) {
       return res
         .status(404)
-        .json({ success: false, message: 'Specialist not found' });
+        .json({ success: false, message: "Specialist not found" });
     }
 
     res.status(200).json({ success: true, data: specialist });
@@ -252,7 +250,7 @@ exports.getSpecialistById = async (req, res) => {
 // Get logged-in user's profile
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
     let user;
 
     user =

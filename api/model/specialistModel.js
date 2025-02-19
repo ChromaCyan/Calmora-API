@@ -8,6 +8,8 @@ const specialistSchema = new mongoose.Schema({
   yearsOfExperience: { type: Number, default: 0 },  
   languagesSpoken: { type: [String], default: [] },  
   availability: { type: String, default: 'Available' }, 
+  location: { type: String, default: 'Dagupan City'},
+  clinic: { type: String, default: null },
   reviews: [{
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String },
