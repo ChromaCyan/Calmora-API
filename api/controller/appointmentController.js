@@ -139,7 +139,7 @@ exports.getPatientAppointments = async (req, res) => {
   try {
     const { patientId } = req.params;
     const appointments = await Appointment.find({ patient: patientId })
-      .populate("specialist", "firstName lastName specialization")
+      .populate("specialist", "firstName lastName specialization profileImage")
       .sort({ startTime: 1 });
     res.status(200).json(appointments);
   } catch (error) {
@@ -152,7 +152,7 @@ exports.getSpecialistAppointments = async (req, res) => {
   try {
     const { specialistId } = req.params;
     const appointments = await Appointment.find({ specialist: specialistId })
-      .populate("patient", "firstName lastName")
+      .populate("patient", "firstName lastName profileImage")
       .sort({ startTime: 1 }); 
     res.status(200).json(appointments);
   } catch (error) {
@@ -284,8 +284,8 @@ exports.getCompletedAppointments = async (req, res) => {
       $or: [{ patient: userId }, { specialist: userId }],
       status: "completed"
     })
-      .populate("specialist", "firstName lastName specialization")
-      .populate("patient", "firstName lastName")
+      .populate("specialist", "firstName lastName specialization profileImage")
+      .populate("patient", "firstName lastName profileImage")
       .select("startTime endTime status feedback imageUrl specialist patient") 
       .sort({ startTime: -1 }); 
 

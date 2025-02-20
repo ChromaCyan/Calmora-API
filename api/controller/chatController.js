@@ -69,7 +69,7 @@ exports.getChatList = async (req, res) => {
     try {
         const userId = req.user.id; 
         const chats = await Chat.find({ participants: userId })
-            .populate('participants', 'firstName lastName') 
+            .populate('participants', 'firstName lastName profileImage') 
             .select('participants messages') 
             .exec();
 
@@ -89,7 +89,7 @@ exports.getChatHistory = async (req, res) => {
     try {
         const { chatId } = req.params;
         const chat = await Chat.findById(chatId)
-            .populate('messages.sender', 'firstName lastName') 
+            .populate('messages.sender', 'firstName lastName profileImage') 
             .exec();
 
         if (!chat) return res.status(404).json({ error: 'Chat not found.' });
