@@ -3,10 +3,11 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 
 dotenv.config();
 
+const OTP = require("../model/otpModel");
 const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
@@ -55,7 +56,7 @@ The Armstrong Team`,
 // OTP Verification
 exports.verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
-  const storedOTP = otps[email];
+  const storedOTP = otps[`${email}_reset`];
 
   if (!storedOTP) {
     return res
@@ -111,7 +112,7 @@ exports.createUser = async (req, res) => {
     await newUser.save();
 
     const otp = generateOTP();
-    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 }; 
+    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 };
     await sendEmail(lowerCaseEmail, otp);
 
     const token = jwt.sign(
@@ -139,14 +140,20 @@ exports.loginUser = async (req, res) => {
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      user = (await Patient.findOne({ email: lowerCaseEmail })) || (await Specialist.findOne({ email: lowerCaseEmail }));
+      user =
+        (await Patient.findOne({ email: lowerCaseEmail })) ||
+        (await Specialist.findOne({ email: lowerCaseEmail }));
     }
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id, userType: user.userType }, JWT_SECRET, { expiresIn: "4d" });
+    const token = jwt.sign(
+      { id: user._id, userType: user.userType },
+      JWT_SECRET,
+      { expiresIn: "4d" }
+    );
 
     res.status(200).json({
       token,
@@ -160,8 +167,8 @@ exports.loginUser = async (req, res) => {
 
 // Edit logged-in user's profile
 exports.editProfile = async (req, res) => {
-  const { id, userType } = req.user; 
-  const updateData = req.body; 
+  const { id, userType } = req.user;
+  const updateData = req.body;
 
   try {
     let updatedUser;
@@ -197,7 +204,7 @@ exports.editProfile = async (req, res) => {
 // Get list of specialists
 exports.getSpecialistList = async (req, res) => {
   try {
-    const specialists = await Specialist.find({}, "-password"); 
+    const specialists = await Specialist.find({}, "-password");
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -227,13 +234,13 @@ exports.getSpecialistById = async (req, res) => {
 
   try {
     const specialist = await Specialist.findById(specialistId).select(
-      '-password' 
+      "-password"
     );
 
     if (!specialist) {
       return res
         .status(404)
-        .json({ success: false, message: 'Specialist not found' });
+        .json({ success: false, message: "Specialist not found" });
     }
 
     res.status(200).json({ success: true, data: specialist });
@@ -245,7 +252,7 @@ exports.getSpecialistById = async (req, res) => {
 // Get logged-in user's profile
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id; 
+    const userId = req.user.id;
     let user;
 
     user =
@@ -261,5 +268,100 @@ exports.getProfile = async (req, res) => {
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Request Password Reset
+exports.requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const lowerCaseEmail = email.toLowerCase();
+    let user = await User.findOne({ email: lowerCaseEmail });
+
+    if (!user) {
+      user =
+        (await Patient.findOne({ email: lowerCaseEmail })) ||
+        (await Specialist.findOne({ email: lowerCaseEmail }));
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
+
+    await OTP.findOneAndUpdate(
+      { email: lowerCaseEmail },
+      { otp, expiresAt, verified: false },
+      { upsert: true, new: true }
+    );
+
+    console.log(`Generated OTP for ${lowerCaseEmail}: ${otp}`);
+
+    await sendEmail(lowerCaseEmail, otp);
+    res.status(200).json({ message: "OTP sent to email for password reset" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Verify OTP for Password Reset
+exports.verifyResetOTP = async (req, res) => {
+  const { email, otp } = req.body;
+  const lowerCaseEmail = email.toLowerCase();
+
+  const storedOTP = await OTP.findOne({ email: lowerCaseEmail });
+
+  if (!storedOTP) {
+    return res.status(404).json({ message: "No OTP found for this email" });
+  }
+
+  if (storedOTP.expiresAt < new Date()) {
+    await OTP.deleteOne({ email: lowerCaseEmail });
+    return res.status(400).json({ message: "OTP has expired" });
+  }
+
+  if (storedOTP.otp !== otp) {
+    return res.status(400).json({ message: "Invalid OTP" });
+  }
+
+  await OTP.updateOne({ email: lowerCaseEmail }, { verified: true });
+  res.status(200).json({ message: "OTP verified, proceed to reset password" });
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+  const lowerCaseEmail = email.toLowerCase();
+
+  const storedOTP = await OTP.findOne({ email: lowerCaseEmail });
+
+  if (!storedOTP || !storedOTP.verified) {
+    return res
+      .status(400)
+      .json({ message: "OTP verification required before resetting password" });
+  }
+
+  try {
+    let user = await User.findOne({ email: lowerCaseEmail });
+    if (!user) {
+      user =
+        (await Patient.findOne({ email: lowerCaseEmail })) ||
+        (await Specialist.findOne({ email: lowerCaseEmail }));
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    await OTP.deleteOne({ email: lowerCaseEmail });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

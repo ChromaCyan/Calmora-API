@@ -25,4 +25,9 @@ router.put('/admin/specialists/:specialistId/reject', verifyToken, isAdmin, admi
 // Fetch a specialist by ID
 router.get('/specialists/:specialistId', verifyToken, authController.getSpecialistById);
 
+// Forget Password
+router.post("/forgot-password", authController.requestPasswordReset);
+router.post("/verify-reset-otp", authController.verifyResetOTP);
+router.post("/reset-password", authController.resetPassword);
+
 module.exports = router;
