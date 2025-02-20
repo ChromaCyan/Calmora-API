@@ -64,18 +64,26 @@ exports.submitSurveyResponse = async (req, res) => {
 };
 
 // Get Survey Results for a Patient
-exports.getPatientSurveyResults = async (req, res) => {
+exports.getLatestPatientSurveyResult = async (req, res) => {
   const { patientId } = req.params;
 
+  console.log("Fetching survey results for patient ID:", patientId);
+
   try {
-    const results = await SurveyResponse.find({ patientId }).populate(
-      "surveyId"
-    );
-    res.status(200).json({ success: true, data: results });
+    const latestResult = await SurveyResponse.findOne({ patient: patientId })
+      .sort({ createdAt: -1 }) // Sort by newest
+      .populate("surveyId");
+
+    if (!latestResult) {
+      return res.status(404).json({ success: false, message: "No survey responses found for this patient." });
+    }
+
+    res.status(200).json({ success: true, data: latestResult });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get recommended articles based on the latest survey interpretation
 exports.getRecommendedArticles = async (req, res) => {

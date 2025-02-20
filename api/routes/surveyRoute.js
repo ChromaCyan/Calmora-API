@@ -13,7 +13,7 @@ router.post("/submit", verifyToken, isPatient, surveyController.submitSurveyResp
 router.get("/all", surveyController.getSurveys);
 
 // Get survey results for a patient
-router.get("/results/:patientId", verifyToken, isPatient,surveyController.getPatientSurveyResults);
+router.get("/results/:patientId", verifyToken, isPatient,surveyController.getLatestPatientSurveyResult);
 
 // Get articles based on survey results
 router.get("/:id/recommended-articles", verifyToken, isPatient, surveyController.getRecommendedArticles);
