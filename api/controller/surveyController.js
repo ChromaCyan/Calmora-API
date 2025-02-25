@@ -71,7 +71,7 @@ exports.getLatestPatientSurveyResult = async (req, res) => {
 
   try {
     const latestResult = await SurveyResponse.findOne({ patient: patientId })
-      .sort({ createdAt: -1 }) // Sort by newest
+      .sort({ createdAt: -1 }) 
       .populate("surveyId");
 
     if (!latestResult) {

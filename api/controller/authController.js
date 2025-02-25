@@ -33,7 +33,7 @@ const sendEmail = async (email, otp) => {
       subject: "Welcome to Armstrong - Verify Your Email",
       text: `Welcome to Armstrong!
 
-We’re excited to have you on board. To complete your sign-up, please use the following OTP to verify your email:
+We’re excited to have you on board. Please use the following OTP to verify the OTP:
 
 OTP Code: ${otp}
 
@@ -174,6 +174,34 @@ exports.editProfile = async (req, res) => {
     let updatedUser;
 
     if (userType === "Specialist") {
+      if (updateData.workingHours) {
+        const { start, end } = updateData.workingHours || {};
+
+        if (!start || !end) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message: "Both start and end times are required.",
+            });
+        }
+
+        const [startHour, startMin] = start.split(":").map(Number);
+        const [endHour, endMin] = end.split(":").map(Number);
+
+        if (
+          startHour > endHour ||
+          (startHour === endHour && startMin >= endMin)
+        ) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message: "Start time must be before end time.",
+            });
+        }
+      }
+
       updatedUser = await Specialist.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
@@ -197,6 +225,86 @@ exports.editProfile = async (req, res) => {
 
     res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Edit logged-in user's profile
+exports.editProfile = async (req, res) => {
+  const { id, userType } = req.user;
+  const updateData = req.body;
+
+  try {
+    let updatedUser;
+
+    if (userType === "Specialist") {
+      // Ensure workingHours is properly formatted if included
+      if (updateData.workingHours) {
+        const { start, end } = updateData.workingHours;
+
+        if (!start || !end) {
+          return res.status(400).json({
+            success: false,
+            message: "Both start and end times are required.",
+          });
+        }
+
+        // Convert "8:00 AM" -> "08:00", "6:00 AM" -> "06:00"
+        const convertTo24HourFormat = (timeStr) => {
+          const [time, period] = timeStr.split(" ");
+          let [hours, minutes] = time.split(":").map(Number);
+
+          if (period === "PM" && hours !== 12) hours += 12;
+          if (period === "AM" && hours === 12) hours = 0;
+
+          return `${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}`;
+        };
+
+        const formattedStart = convertTo24HourFormat(start);
+        const formattedEnd = convertTo24HourFormat(end);
+
+        const [startHour, startMin] = formattedStart.split(":").map(Number);
+        const [endHour, endMin] = formattedEnd.split(":").map(Number);
+
+        if (startHour > endHour || (startHour === endHour && startMin >= endMin)) {
+          return res.status(400).json({
+            success: false,
+            message: "Start time must be before end time.",
+          });
+        }
+
+        // Ensure the correct structure for workingHours
+        updateData.workingHours = {
+          start: formattedStart,
+          end: formattedEnd,
+        };
+      }
+
+      // Update all fields while ensuring workingHours is properly set
+      updatedUser = await Specialist.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+    } else if (userType === "Patient") {
+      updatedUser = await Patient.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid user type" });
+    }
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (error) {
+    console.error("Error updating profile:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

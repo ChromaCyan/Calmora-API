@@ -4,6 +4,160 @@ const { io } = require("../socket/socket");
 const { createNotification } = require("./notificationController");
 const Availability = require("../model/availabilityModel");
 
+// Function to generate time slots
+function generateTimeSlots(start, end) {
+  const slots = [];
+  let [startHour, startMinute] = start.split(":").map(Number);
+  let [endHour, endMinute] = end.split(":").map(Number);
+
+  let current = new Date();
+  current.setHours(startHour, startMinute, 0, 0);
+
+  const endTime = new Date();
+  endTime.setHours(endHour, endMinute, 0, 0);
+
+  while (current < endTime) {
+    let slotStart = `${current.getHours().toString().padStart(2, "0")}:${current
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+
+    current.setMinutes(current.getMinutes() + 60);
+
+    let slotEnd = `${current.getHours().toString().padStart(2, "0")}:${current
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+
+    slots.push({ start: slotStart, end: slotEnd });
+  }
+
+  return slots;
+}
+
+// Endpoint to get available time slots for a specialist
+exports.getAvailableTimeSlots = async (req, res) => {
+  try {
+    const { specialistId, date } = req.params;
+
+    // Validate specialist existence
+    const specialist = await User.findById(specialistId);
+    if (!specialist || specialist.userType !== "Specialist") {
+      return res.status(404).json({ error: "Specialist not found" });
+    }
+
+    const { start, end } = specialist.workingHours;
+    if (!start || !end) {
+      return res.status(400).json({ error: "Working hours not set" });
+    }
+
+    // Generate available slots
+    const allSlots = generateTimeSlots(start, end);
+
+    // Fetch booked appointments for the selected date
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const bookedAppointments = await Appointment.find({
+      specialist: specialistId,
+      startTime: {
+        $gte: selectedDate,
+        $lt: new Date(selectedDate.setDate(selectedDate.getDate() + 1)),
+      },
+    }).select("startTime");
+
+    const bookedTimes = new Set(
+      bookedAppointments.map((appointment) =>
+        new Date(appointment.startTime).toISOString().substring(11, 16)
+      )
+    );
+
+    const availableSlots = allSlots.filter(
+      (slot) => !bookedTimes.has(slot.start)
+    );
+
+    res.status(200).json({ availableSlots });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Create an appointment
+exports.createAppointment = async (req, res) => {
+  try {
+    const { patientId, specialistId, startTime, message } = req.body;
+
+    // Validate specialist existence
+    const specialist = await User.findById(specialistId);
+    if (!specialist || specialist.userType !== "Specialist") {
+      return res.status(404).json({ error: "Specialist not found" });
+    }
+
+    // Check if the patient already has an appointment with this specialist
+    const existingAppointment = await Appointment.findOne({
+      patient: patientId,
+      specialist: specialistId,
+      status: { $nin: ["completed", "declined"] }, 
+    });
+
+    if (existingAppointment) {
+      return res.status(400).json({ error: "You already have an active appointment with this specialist" });
+    }
+
+    // Validate working hours
+    if (!specialist.workingHours?.start || !specialist.workingHours?.end) {
+      return res.status(400).json({ error: "Specialist's working hours are not set" });
+    }
+
+    // Parse the selected time
+    const startTimeObj = new Date(startTime);
+    if (isNaN(startTimeObj.getTime())) {
+      return res.status(400).json({ error: "Invalid start time format" });
+    }
+
+    // Convert selected time to "HH:MM" format
+    const requestedTime = startTimeObj.toISOString().substring(11, 16);
+
+    // Generate available slots
+    const allSlots = generateTimeSlots(specialist.workingHours.start, specialist.workingHours.end);
+
+    // Ensure selected time is a valid slot
+    const isValidSlot = allSlots.some(slot => slot.start === requestedTime);
+    if (!isValidSlot) {
+      return res.status(400).json({ error: "Invalid time slot" });
+    }
+
+    // Check if the selected time is already booked
+    const isBooked = await Appointment.exists({
+      specialist: specialistId,
+      startTime: startTimeObj, // Must match exact slot
+    });
+
+    if (isBooked) {
+      return res.status(400).json({ error: "Time slot already booked" });
+    }
+
+    // Create the appointment
+    const appointment = await Appointment.create({
+      patient: patientId,
+      specialist: specialistId,
+      startTime: startTimeObj,
+      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000), // Add 1 hour
+      message,
+    });
+
+    // Send notification to specialist
+    await createNotification(
+      specialistId,
+      "appointment",
+      "You have a new appointment request."
+    );
+
+    res.status(201).json({ message: "Appointment created successfully", appointment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // // Create a new appointment
 // exports.createAppointment = async (req, res) => {
@@ -20,40 +174,18 @@ const Availability = require("../model/availabilityModel");
 //     const existingAppointment = await Appointment.findOne({
 //       patient: patientId,
 //       specialist: specialistId,
-//       status: { $nin: ["completed", "declined"] }, 
+//       status: { $nin: ["completed", "declined"] },
 //     });
 
 //     if (existingAppointment) {
 //       return res.status(400).json({ error: "You already have an active appointment with this specialist" });
 //     }
 
-//     // Get specialist's availability
-//     const availability = await Availability.findOne({ specialist: specialistId });
-//     if (!availability) {
-//       return res.status(404).json({ error: "Specialist's availability not set" });
-//     }
-
-//     // Check if the selected start time is available (compare against time slots)
-//     const startDate = new Date(startTime);
-//     const dayOfWeek = startDate.toLocaleString('en-us', { weekday: 'long' });
-
-//     const isAvailable = availability.timeSlots.some(slot => {
-//       return (
-//         slot.day === dayOfWeek &&
-//         startDate >= new Date(`${startDate.toDateString()} ${slot.startTime}`) &&
-//         startDate <= new Date(`${startDate.toDateString()} ${slot.endTime}`)
-//       );
-//     });
-
-//     if (!isAvailable) {
-//       return res.status(400).json({ error: "The selected time slot is unavailable" });
-//     }
-
 //     // Calculate endTime (1 hour after startTime)
 //     const endTime = new Date(startTime);
 //     endTime.setHours(endTime.getHours() + 1);
 
-//     // Check for overlapping appointments (same specialist and same time range)
+//     // Check for overlapping appointments
 //     const isOverlap = await Appointment.checkOverlap(specialistId, startTime, endTime);
 //     if (isOverlap) {
 //       return res.status(400).json({ error: "This time slot is already booked" });
@@ -71,68 +203,18 @@ const Availability = require("../model/availabilityModel");
 //     // Notification for specialist about the new appointment
 //     await createNotification(specialistId, "appointment", "You have a new appointment request.");
 
+//     // io.to(specialistId).emit("new_notification", {
+//     //   type: "appointment",
+//     //   message: `New appointment created by ${patientId}`,
+//     //   appointmentId: appointment._id,
+//     //   timestamp: new Date(),
+//     // });
+
 //     res.status(201).json({ message: "Appointment created successfully", appointment });
 //   } catch (error) {
 //     res.status(500).json({ error: error.message });
 //   }
 // };
-
-// Create a new appointment
-exports.createAppointment = async (req, res) => {
-  try {
-    const { patientId, specialistId, startTime, message } = req.body;
-
-    // Validate that the specialist exists
-    const specialist = await User.findById(specialistId);
-    if (!specialist || specialist.userType !== "Specialist") {
-      return res.status(404).json({ error: "Specialist not found" });
-    }
-
-    // Check if the patient already has an appointment with this specialist
-    const existingAppointment = await Appointment.findOne({
-      patient: patientId,
-      specialist: specialistId,
-      status: { $nin: ["completed", "declined"] }, 
-    });
-
-    if (existingAppointment) {
-      return res.status(400).json({ error: "You already have an active appointment with this specialist" });
-    }
-
-    // Calculate endTime (1 hour after startTime)
-    const endTime = new Date(startTime);
-    endTime.setHours(endTime.getHours() + 1);
-
-    // Check for overlapping appointments
-    const isOverlap = await Appointment.checkOverlap(specialistId, startTime, endTime);
-    if (isOverlap) {
-      return res.status(400).json({ error: "This time slot is already booked" });
-    }
-
-    // Create the appointment
-    const appointment = await Appointment.create({
-      patient: patientId,
-      specialist: specialistId,
-      startTime,
-      endTime,
-      message,
-    });
-
-    // Notification for specialist about the new appointment
-    await createNotification(specialistId, "appointment", "You have a new appointment request.");
-
-    // io.to(specialistId).emit("new_notification", {
-    //   type: "appointment",
-    //   message: `New appointment created by ${patientId}`,
-    //   appointmentId: appointment._id,
-    //   timestamp: new Date(),
-    // });
-
-    res.status(201).json({ message: "Appointment created successfully", appointment });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 // Get all appointments for a patient
 exports.getPatientAppointments = async (req, res) => {
@@ -153,7 +235,7 @@ exports.getSpecialistAppointments = async (req, res) => {
     const { specialistId } = req.params;
     const appointments = await Appointment.find({ specialist: specialistId })
       .populate("patient", "firstName lastName profileImage")
-      .sort({ startTime: 1 }); 
+      .sort({ startTime: 1 });
     res.status(200).json(appointments);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -168,7 +250,7 @@ exports.acceptAppointment = async (req, res) => {
       appointmentId,
       { status: "accepted" },
       { new: true }
-    ).populate("patient specialist", "firstName lastName"); 
+    ).populate("patient specialist", "firstName lastName");
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
@@ -176,7 +258,9 @@ exports.acceptAppointment = async (req, res) => {
 
     const patient = appointment.patient;
     if (!patient) {
-      return res.status(400).json({ error: "Patient data missing in appointment" });
+      return res
+        .status(400)
+        .json({ error: "Patient data missing in appointment" });
     }
 
     // Notification for patient
@@ -188,15 +272,18 @@ exports.acceptAppointment = async (req, res) => {
     //   timestamp: new Date(),
     // });
 
-    await createNotification(patient._id, "appointment", "Your appointment has been accepted.");
+    await createNotification(
+      patient._id,
+      "appointment",
+      "Your appointment has been accepted."
+    );
 
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
-    console.error("Error accepting appointment:", error); 
+    console.error("Error accepting appointment:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Specialist declines an appointment
 exports.declineAppointment = async (req, res) => {
@@ -206,7 +293,7 @@ exports.declineAppointment = async (req, res) => {
       appointmentId,
       { status: "declined" },
       { new: true }
-    ).populate("patient specialist", "firstName lastName"); 
+    ).populate("patient specialist", "firstName lastName");
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
@@ -214,11 +301,17 @@ exports.declineAppointment = async (req, res) => {
 
     const patient = appointment.patient;
     if (!patient) {
-      return res.status(400).json({ error: "Patient data missing in appointment" });
+      return res
+        .status(400)
+        .json({ error: "Patient data missing in appointment" });
     }
 
     // Notification for patient
-    await createNotification(patient._id, "appointment", "Your appointment has been rejected.");
+    await createNotification(
+      patient._id,
+      "appointment",
+      "Your appointment has been rejected."
+    );
     // io.to(patient._id).emit("new_notification", {
     //   type: "appointment",
     //   message: `Your appointment with ${appointment.specialist.firstName} has been declined.`,
@@ -237,15 +330,20 @@ exports.declineAppointment = async (req, res) => {
 exports.completeAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    const { feedback, imageUrl } = req.body; 
+    const { feedback, imageUrl } = req.body;
 
     // Validate input
     if (!feedback || !imageUrl) {
-      return res.status(400).json({ error: "Feedback and image URL are required to complete the appointment." });
+      return res.status(400).json({
+        error:
+          "Feedback and image URL are required to complete the appointment.",
+      });
     }
 
     // Find the appointment
-    const appointment = await Appointment.findById(appointmentId).populate("patient specialist");
+    const appointment = await Appointment.findById(appointmentId).populate(
+      "patient specialist"
+    );
 
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
@@ -253,13 +351,15 @@ exports.completeAppointment = async (req, res) => {
 
     // Check if the appointment is already completed
     if (appointment.status === "completed") {
-      return res.status(400).json({ error: "This appointment is already completed." });
+      return res
+        .status(400)
+        .json({ error: "This appointment is already completed." });
     }
 
     // Update appointment details
     appointment.status = "completed";
     appointment.feedback = feedback;
-    appointment.imageUrl = imageUrl; 
+    appointment.imageUrl = imageUrl;
     await appointment.save();
 
     // Notify patient that their appointment is completed
@@ -269,7 +369,9 @@ exports.completeAppointment = async (req, res) => {
       `Your appointment with ${appointment.specialist.firstName} has been marked as completed.`
     );
 
-    res.status(200).json({ message: "Appointment completed successfully", appointment });
+    res
+      .status(200)
+      .json({ message: "Appointment completed successfully", appointment });
   } catch (error) {
     console.error("Error completing appointment:", error);
     res.status(500).json({ error: error.message });
@@ -278,16 +380,16 @@ exports.completeAppointment = async (req, res) => {
 
 exports.getCompletedAppointments = async (req, res) => {
   try {
-    const { userId } = req.params; 
+    const { userId } = req.params;
 
     const appointments = await Appointment.find({
       $or: [{ patient: userId }, { specialist: userId }],
-      status: "completed"
+      status: "completed",
     })
       .populate("specialist", "firstName lastName specialization profileImage")
       .populate("patient", "firstName lastName profileImage")
-      .select("startTime endTime status feedback imageUrl specialist patient") 
-      .sort({ startTime: -1 }); 
+      .select("startTime endTime status feedback imageUrl specialist patient")
+      .sort({ startTime: -1 });
 
     res.status(200).json(appointments);
   } catch (error) {

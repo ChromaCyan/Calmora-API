@@ -172,6 +172,22 @@ exports.editProfile = async (req, res) => {
     let updatedUser;
 
     if (userType === "Specialist") {
+      
+      if (updateData.workingHours) {
+        const { start, end } = updateData.workingHours || {};
+
+        if (!start || !end) {
+          return res.status(400).json({ success: false, message: "Both start and end times are required." });
+        }
+
+        const [startHour, startMin] = start.split(":").map(Number);
+        const [endHour, endMin] = end.split(":").map(Number);
+
+        if (startHour > endHour || (startHour === endHour && startMin >= endMin)) {
+          return res.status(400).json({ success: false, message: "Start time must be before end time." });
+        }
+      }
+
       updatedUser = await Specialist.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
