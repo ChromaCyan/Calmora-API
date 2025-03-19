@@ -112,22 +112,23 @@ exports.updateTimeSlot = async (req, res) => {
       });
     }
 
+    // Check for duplicate day with a different slot
     const isDuplicateDay = await TimeSlot.exists({
       specialist: slot.specialist,
       dayOfWeek: dayOfWeek || slot.dayOfWeek,
-      _id: { $ne: slotId },
-      $or: [{ startTime: { $lt: endTime }, endTime: { $gt: startTime } }],
+      _id: { $ne: slotId }, // Exclude the current slot
     });
-    
+
     if (isDuplicateDay) {
       return res.status(400).json({
         success: false,
         message: `A time slot for ${
           dayOfWeek || slot.dayOfWeek
-        } already exists and overlaps. Please update the existing slot.`,
+        } already exists. Please update the existing slot.`,
       });
     }
 
+    // Check for overlapping time slots on the same day
     const isOverlap = await TimeSlot.exists({
       specialist: slot.specialist,
       dayOfWeek: dayOfWeek || slot.dayOfWeek,
@@ -154,6 +155,7 @@ exports.updateTimeSlot = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 // Book a time slot and create an appointment
