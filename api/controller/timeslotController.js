@@ -105,11 +105,27 @@ exports.updateTimeSlot = async (req, res) => {
     const { startTime, endTime, dayOfWeek } = req.body;
 
     const slot = await TimeSlot.findById(slotId);
-
     if (!slot) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Time slot not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Time slot not found",
+      });
+    }
+
+    const isDuplicateDay = await TimeSlot.exists({
+      specialist: slot.specialist,
+      dayOfWeek: dayOfWeek || slot.dayOfWeek,
+      _id: { $ne: slotId },
+      $or: [{ startTime: { $lt: endTime }, endTime: { $gt: startTime } }],
+    });
+    
+    if (isDuplicateDay) {
+      return res.status(400).json({
+        success: false,
+        message: `A time slot for ${
+          dayOfWeek || slot.dayOfWeek
+        } already exists and overlaps. Please update the existing slot.`,
+      });
     }
 
     const isOverlap = await TimeSlot.exists({
@@ -122,10 +138,11 @@ exports.updateTimeSlot = async (req, res) => {
     if (isOverlap) {
       return res.status(400).json({
         success: false,
-        message: "Updated time slot overlaps with existing slot",
+        message: "Updated time slot overlaps with an existing slot.",
       });
     }
 
+    // Update the slot details
     slot.startTime = startTime || slot.startTime;
     slot.endTime = endTime || slot.endTime;
     slot.dayOfWeek = dayOfWeek || slot.dayOfWeek;
@@ -137,6 +154,7 @@ exports.updateTimeSlot = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Book a time slot and create an appointment
 exports.bookTimeSlot = async (req, res) => {
