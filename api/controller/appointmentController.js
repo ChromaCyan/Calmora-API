@@ -142,7 +142,7 @@ exports.createAppointment = async (req, res) => {
       patient: patientId,
       specialist: specialistId,
       startTime: startTimeObj,
-      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000), // Add 1 hour
+      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000), 
       message,
     });
 

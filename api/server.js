@@ -16,6 +16,7 @@ const appointmentRoutes = require("./routes/appointmentRoute");
 const surveyRoutes = require("./routes/surveyRoute");
 const articleRoutes = require("./routes/articleRoute");
 const notificationRoutes = require("./routes/notificationRoute");
+const timeslotRoutes = require("./routes/timeslotRoute");
 
 // Important Imports
 const app = express();
@@ -36,7 +37,7 @@ initializeSocket(http.createServer(app));  // Use the HTTP server for socket.io
 
 // Routes
 app.get("/", (req, res) => res.send("Express on Vercel"));
-app.get("/api", (req, res) => res.json({ message: "Hello from the API!" }));
+app.get("/api", (req, res) => res.json({ message: "Testing to see if my API works!" }));
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/appointment", appointmentRoutes);
@@ -44,6 +45,7 @@ app.use("/api/mood", moodRoutes);
 app.use("/api/survey", surveyRoutes);
 app.use("/api/article", articleRoutes);
 app.use("/api/notification", notificationRoutes);
+app.use("/api/timeslot", timeslotRoutes);
 
 // Export the app to allow Vercel to handle it
 module.exports = app;
