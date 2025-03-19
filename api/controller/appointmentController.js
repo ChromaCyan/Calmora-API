@@ -243,7 +243,6 @@ exports.getPatientAppointments = async (req, res) => {
 
 
 // Get all appointments for a specialist
-// Get all appointments for a specialist
 exports.getSpecialistAppointments = async (req, res) => {
   try {
     const { specialistId } = req.params;
@@ -423,8 +422,37 @@ exports.getCompletedAppointments = async (req, res) => {
     })
       .populate("specialist", "firstName lastName specialization profileImage")
       .populate("patient", "firstName lastName profileImage")
-      .select("startTime endTime status feedback imageUrl specialist patient")
+      .populate("timeSlot", "startTime endTime dayOfWeek")
       .sort({ startTime: -1 });
+
+    // Ensure startTime and endTime are returned as strings
+    appointments.forEach(appointment => {
+      if (appointment.timeSlot) {
+        const { startTime, endTime } = appointment.timeSlot;
+        appointment.timeSlot.startTime = startTime || "Invalid Time";
+        appointment.timeSlot.endTime = endTime || "Invalid Time";
+      }
+
+      // Ensure specialist data is returned as strings (if necessary)
+      if (appointment.specialist) {
+        const { firstName, lastName, profileImage } = appointment.specialist;
+        appointment.specialist = {
+          firstName: firstName || "Unknown",
+          lastName: lastName || "Unknown",
+          profileImage: profileImage || "No Image Available",
+        };
+      }
+
+      // Ensure patient data is returned as strings (if necessary)
+      if (appointment.patient) {
+        const { firstName, lastName, profileImage } = appointment.patient;
+        appointment.patient = {
+          firstName: firstName || "Unknown",
+          lastName: lastName || "Unknown",
+          profileImage: profileImage || "No Image Available",
+        };
+      }
+    });
 
     res.status(200).json(appointments);
   } catch (error) {

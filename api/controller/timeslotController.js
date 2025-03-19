@@ -52,7 +52,6 @@ exports.getAvailableSlots = async (req, res) => {
   }
 };
 
-
 // Get all time slots for a specialist (regardless of date)
 exports.getAllSlots = async (req, res) => {
   try {
@@ -82,6 +81,7 @@ exports.addTimeSlot = async (req, res) => {
   try {
     const { specialistId, dayOfWeek, startTime, endTime } = req.body;
 
+    // Check if the new time slot overlaps with an existing one
     const isOverlap = await TimeSlot.exists({
       specialist: specialistId,
       dayOfWeek: dayOfWeek,
@@ -95,19 +95,7 @@ exports.addTimeSlot = async (req, res) => {
       });
     }
 
-    const isDuplicateDay = await TimeSlot.exists({
-      specialist: specialistId,
-      dayOfWeek: dayOfWeek,
-    });
-
-    if (isDuplicateDay) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Time slot for this day already exists. Please edit the existing slot.",
-      });
-    }
-
+    // Create the new time slot for the specialist
     const newSlot = await TimeSlot.create({
       specialist: specialistId,
       dayOfWeek,
@@ -122,6 +110,7 @@ exports.addTimeSlot = async (req, res) => {
 };
 
 // Update a time slot for a specialist
+// Update a time slot for a specialist
 exports.updateTimeSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
@@ -135,28 +124,22 @@ exports.updateTimeSlot = async (req, res) => {
       });
     }
 
-    // Check for duplicate day with a different slot
-    const isDuplicateDay = await TimeSlot.exists({
-      specialist: slot.specialist,
-      dayOfWeek: dayOfWeek || slot.dayOfWeek,
-      _id: { $ne: slotId }, // Exclude the current slot
-    });
-
-    if (isDuplicateDay) {
-      return res.status(400).json({
-        success: false,
-        message: `A time slot for ${
-          dayOfWeek || slot.dayOfWeek
-        } already exists. Please update the existing slot.`,
-      });
-    }
-
-    // Check for overlapping time slots on the same day
+    // Check for overlap if day or time is being updated
     const isOverlap = await TimeSlot.exists({
       specialist: slot.specialist,
-      dayOfWeek: dayOfWeek || slot.dayOfWeek,
-      _id: { $ne: slotId },
-      $or: [{ startTime: { $lt: endTime }, endTime: { $gt: startTime } }],
+      $or: [
+        {
+          dayOfWeek: dayOfWeek || slot.dayOfWeek,
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime },
+        },
+        {
+          _id: { $ne: slotId }, // Exclude the current slot
+          dayOfWeek: dayOfWeek || slot.dayOfWeek,
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime },
+        },
+      ],
     });
 
     if (isOverlap) {
@@ -228,6 +211,13 @@ exports.bookTimeSlot = async (req, res) => {
       message,
       appointmentDate: new Date(appointmentDate),
     });
+
+    // Send notification to specialist
+    await createNotification(
+      specialistId,
+      "appointment",
+      "You have a new appointment request."
+    );
 
     console.log("Appointment created successfully:", newAppointment);
 
