@@ -17,6 +17,10 @@ const appointmentSchema = new mongoose.Schema(
       ref: "TimeSlot",
       required: true,
     },
+    appointmentDate: {
+      type: Date,
+      required: true, 
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "declined", "completed"],
@@ -28,3 +32,8 @@ const appointmentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+const Appointment2 =
+  mongoose.models.Appointment2 || mongoose.model("Appointment2", appointmentSchema);
+
+module.exports = Appointment2; 

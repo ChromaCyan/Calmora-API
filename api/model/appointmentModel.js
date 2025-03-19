@@ -12,13 +12,14 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    startTime: {
-      type: Date,
+    timeSlot: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TimeSlot",
       required: true,
     },
-    endTime: {
+    appointmentDate: {
       type: Date,
-      required: true,
+      required: true, 
     },
     status: {
       type: String,
@@ -32,21 +33,7 @@ const appointmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Method to check for overlapping appointments
-appointmentSchema.statics.checkOverlap = async function (
-  specialistId,
-  startTime,
-  endTime
-) {
-  const overlappingAppointment = await this.findOne({
-    specialist: specialistId,
-    $or: [
-      { startTime: { $lt: endTime, $gte: startTime } },
-      { endTime: { $gt: startTime, $lte: endTime } },
-      { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
-    ],
-  });
-  return !!overlappingAppointment;
-};
+const Appointment =
+  mongoose.models.Appointment || mongoose.model("Appointment", appointmentSchema);
 
-module.exports = mongoose.model("Appointment", appointmentSchema);
+module.exports = Appointment; 

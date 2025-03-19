@@ -1,9 +1,9 @@
 const TimeSlot = require("../model/timeslotModel");
 const { createNotification } = require("./notificationController");
-const Appointment = require("../model/appointmentModel2");
+const Appointment = require("../model/appointmentModel");
 const User = require("../model/userModel");
 
-// Get all available time slot for that specialist
+// Get all available time slots for that specialist on a specific date
 exports.getAvailableSlots = async (req, res) => {
   try {
     const { specialistId, date } = req.params;
@@ -13,22 +13,45 @@ exports.getAvailableSlots = async (req, res) => {
       weekday: "long",
     });
 
+    // ✅ Get all time slots for that specialist on the selected day
     const slots = await TimeSlot.find({
       specialist: specialistId,
       dayOfWeek: { $regex: new RegExp(dayOfWeek, "i") },
-      isBooked: false,
     });
 
-    // Inside getAvailableSlots
+    // ✅ Get appointments already booked for that date
+    const appointmentsOnDate = await Appointment.find({
+      specialist: specialistId,
+      timeSlot: { $in: slots.map((s) => s._id) },
+      appointmentDate: {
+        $gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
+        $lt: new Date(selectedDate.setHours(23, 59, 59, 999)),
+      },
+      status: { $nin: ["completed", "declined"] },
+    });
+
+    // ✅ Get IDs of already booked slots for that date
+    const bookedSlotIds = appointmentsOnDate.map((a) => a.timeSlot.toString());
+
+    // ✅ Filter out booked slots for that date
+    const availableSlots = slots.filter(
+      (slot) => !bookedSlotIds.includes(slot._id.toString())
+    );
+
+    // 📚 Debugging logs
     console.log(`Specialist ID: ${specialistId}, Date: ${date}`);
     console.log(`Day of Week: ${dayOfWeek}`);
-    console.log(`Matching Slots: ${slots.length}`);
+    console.log(`Total Slots Found: ${slots.length}`);
+    console.log(`Booked Slots on ${date}: ${bookedSlotIds.length}`);
+    console.log(`Available Slots: ${availableSlots.length}`);
 
-    res.status(200).json({ success: true, slots });
+    res.status(200).json({ success: true, slots: availableSlots });
   } catch (error) {
+    console.error("Error fetching available slots:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get all time slots for a specialist (regardless of date)
 exports.getAllSlots = async (req, res) => {
@@ -156,77 +179,65 @@ exports.updateTimeSlot = async (req, res) => {
   }
 };
 
-
-
-// Book a time slot and create an appointment
+// Book an appointment
 exports.bookTimeSlot = async (req, res) => {
   try {
-    const { patientId, slotId, message } = req.body;
+    console.log("Booking Request Body:", req.body);
+
+    const { patientId, slotId, message, appointmentDate } = req.body;
 
     // Validate time slot existence
     const slot = await TimeSlot.findById(slotId).populate("specialist");
 
     if (!slot) {
+      console.log("Slot not found!");
       return res
         .status(404)
         .json({ success: false, message: "Time slot not found" });
     }
 
-    if (slot.isBooked) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Time slot is already booked" });
+    // Check if this exact slot is already booked for the selected date
+    const existingAppointment = await Appointment.findOne({
+      timeSlot: slot._id,
+      appointmentDate: new Date(appointmentDate),
+      status: { $nin: ["completed", "declined"] },
+    });
+
+    if (existingAppointment) {
+      console.log("Slot already booked for this date!");
+      return res.status(400).json({
+        success: false,
+        message: "Time slot is already booked for this date",
+      });
     }
 
     // Validate patient existence
     const patient = await User.findById(patientId);
-    if (!patient || patient.userType !== "patient") {
+    if (!patient || patient.userType !== "Patient") {
+      console.log("Patient not found or invalid user type!");
       return res
         .status(404)
         .json({ success: false, message: "Patient not found" });
     }
 
-    // Check if patient already has an appointment at the same time (any specialist)
-    const existingAppointment = await Appointment.findOne({
-      patient: patientId,
-      startTime: slot.startTime,
-      status: { $nin: ["completed", "declined"] },
-    });
-
-    if (existingAppointment) {
-      return res.status(400).json({
-        success: false,
-        message: "You already have an appointment at this time",
-      });
-    }
-
-    // Create the appointment
-    const appointment = await Appointment.create({
+    // Create the new appointment with `appointmentDate`
+    const newAppointment = await Appointment.create({
       patient: patientId,
       specialist: slot.specialist._id,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+      timeSlot: slot._id,
       message,
+      appointmentDate: new Date(appointmentDate),
     });
 
-    // Mark slot as booked
-    slot.isBooked = true;
-    slot.bookedBy = patientId;
-    await slot.save();
-
-    // Send notification to specialist
-    await createNotification(
-      slot.specialist._id,
-      "appointment",
-      `You have a new appointment request from ${patient.firstName}`
-    );
+    console.log("Appointment created successfully:", newAppointment);
 
     res.status(201).json({
       success: true,
       message: "Appointment created successfully",
-      appointment,
+      appointment: newAppointment,
     });
   } catch (error) {
+    console.error("Booking error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };

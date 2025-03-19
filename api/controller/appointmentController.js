@@ -222,20 +222,55 @@ exports.getPatientAppointments = async (req, res) => {
     const { patientId } = req.params;
     const appointments = await Appointment.find({ patient: patientId })
       .populate("specialist", "firstName lastName specialization profileImage")
-      .sort({ startTime: 1 });
+      .populate("timeSlot", "startTime endTime dayOfWeek")
+      .sort({ appointmentDate: 1 });
+
+    // Ensure startTime and endTime are returned as strings
+    appointments.forEach(appointment => {
+      if (appointment.timeSlot) {
+        // These are already strings in MongoDB, but ensure they are passed as such
+        const { startTime, endTime } = appointment.timeSlot;
+        appointment.timeSlot.startTime = startTime || "Invalid Time";
+        appointment.timeSlot.endTime = endTime || "Invalid Time";
+      }
+    });
+
     res.status(200).json(appointments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+
+// Get all appointments for a specialist
 // Get all appointments for a specialist
 exports.getSpecialistAppointments = async (req, res) => {
   try {
     const { specialistId } = req.params;
     const appointments = await Appointment.find({ specialist: specialistId })
       .populate("patient", "firstName lastName profileImage")
-      .sort({ startTime: 1 });
+      .populate("timeSlot", "startTime endTime dayOfWeek")
+      .sort({ appointmentDate: 1 });
+
+    // Ensure startTime and endTime are returned as strings
+    appointments.forEach(appointment => {
+      if (appointment.timeSlot) {
+        const { startTime, endTime } = appointment.timeSlot;
+        appointment.timeSlot.startTime = startTime || "Invalid Time";
+        appointment.timeSlot.endTime = endTime || "Invalid Time";
+      }
+
+      // Ensure patient data is returned as strings (if necessary)
+      if (appointment.patient) {
+        const { firstName, lastName, profileImage } = appointment.patient;
+        appointment.patient = {
+          firstName: firstName || "Unknown",
+          lastName: lastName || "Unknown",
+          profileImage: profileImage || "No Image Available",
+        };
+      }
+    });
+
     res.status(200).json(appointments);
   } catch (error) {
     res.status(500).json({ error: error.message });
