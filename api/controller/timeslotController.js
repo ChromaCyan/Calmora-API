@@ -110,7 +110,6 @@ exports.addTimeSlot = async (req, res) => {
 };
 
 // Update a time slot for a specialist
-// Update a time slot for a specialist
 exports.updateTimeSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
@@ -179,6 +178,41 @@ exports.bookTimeSlot = async (req, res) => {
         .json({ success: false, message: "Time slot not found" });
     }
 
+    // Block second booking with the same specialist (unless previous one is completed/declined)
+    const existingSpecialistAppointment = await Appointment.findOne({
+      patient: patientId,
+      specialist: slot.specialist._id,
+      status: { $nin: ["completed", "declined"] },
+    });
+
+    if (existingSpecialistAppointment) {
+      console.log("Already booked with this specialist!");
+      return res.status(400).json({
+        success: false,
+        message:
+          "You already have an ongoing/pending appointment with this specialist. Finish it before booking another.",
+      });
+    }
+
+    // Block booking from another specialist on the same date or same time slot
+    const conflictingAppointment = await Appointment.findOne({
+      patient: patientId,
+      appointmentDate: {
+        $gte: new Date(new Date(appointmentDate).setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date(appointmentDate).setHours(23, 59, 59, 999)),
+      },
+      status: { $nin: ["completed", "declined"] },
+    });
+
+    if (conflictingAppointment) {
+      console.log("Conflicting appointment found for the same date!");
+      return res.status(400).json({
+        success: false,
+        message:
+          "You already have an appointment booked for this date or time slot with another specialist.",
+      });
+    }
+
     // Check if this exact slot is already booked for the selected date
     const existingAppointment = await Appointment.findOne({
       timeSlot: slot._id,
@@ -214,7 +248,7 @@ exports.bookTimeSlot = async (req, res) => {
 
     // Send notification to specialist
     await createNotification(
-      specialistId,
+      slot.specialist._id,
       "appointment",
       "You have a new appointment request."
     );

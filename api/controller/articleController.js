@@ -5,7 +5,14 @@ const mongoose = require("mongoose");
 // Create a new article
 exports.createArticle = async (req, res) => {
   try {
-    const { title, content, heroImage, additionalImages, specialistId, categories } = req.body;
+    const {
+      title,
+      content,
+      heroImage,
+      additionalImages,
+      specialistId,
+      categories,
+    } = req.body;
 
     // Check if the author (Specialist) exists
     const specialist = await Specialist.findById(specialistId);
@@ -23,11 +30,14 @@ exports.createArticle = async (req, res) => {
       "mental wellness",
       "self-care",
     ];
-    if (!Array.isArray(categories) || categories.some((cat) => !allowedCategories.includes(cat))) {
+    if (
+      !Array.isArray(categories) ||
+      categories.some((cat) => !allowedCategories.includes(cat))
+    ) {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
-    console.log('Categories:', categories);
+    console.log("Categories:", categories);
 
     // Create the article
     const article = new Article({
@@ -42,10 +52,12 @@ exports.createArticle = async (req, res) => {
     console.log(req.body);
 
     await article.save();
-    
+
     res.status(201).json({ message: "Article created successfully", article });
   } catch (error) {
-    res.status(500).json({ message: "Error creating article", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error creating article", error: error.message });
   }
 };
 
@@ -64,12 +76,19 @@ exports.getArticlesBySpecialist = async (req, res) => {
     );
 
     if (!articles || articles.length === 0) {
-      return res.status(404).json({ message: "No articles found for this specialist" });
+      return res
+        .status(404)
+        .json({ message: "No articles found for this specialist" });
     }
 
     res.status(200).json(articles);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching specialist articles", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error fetching specialist articles",
+        error: error.message,
+      });
   }
 };
 
@@ -77,7 +96,14 @@ exports.getArticlesBySpecialist = async (req, res) => {
 exports.updateArticle = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, heroImage, additionalImages, specialistId, categories } = req.body;
+    const {
+      title,
+      content,
+      heroImage,
+      additionalImages,
+      specialistId,
+      categories,
+    } = req.body;
 
     // Find the article
     const article = await Article.findById(id);
@@ -86,8 +112,10 @@ exports.updateArticle = async (req, res) => {
     }
 
     // Check if the specialist is the owner of the article
-    if (article.specialistId.toString() !== specialistId) {
-      return res.status(403).json({ message: "Unauthorized to edit this article" });
+    if (specialistId && article.specialistId.toString() !== specialistId) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to edit this article" });
     }
 
     // Validate categories (if provided)
@@ -100,7 +128,11 @@ exports.updateArticle = async (req, res) => {
       "mental wellness",
       "self-care",
     ];
-    if (categories && (!Array.isArray(categories) || categories.some((cat) => !allowedCategories.includes(cat)))) {
+    if (
+      categories &&
+      (!Array.isArray(categories) ||
+        categories.some((cat) => !allowedCategories.includes(cat)))
+    ) {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
@@ -114,17 +146,24 @@ exports.updateArticle = async (req, res) => {
     await article.save();
     res.status(200).json({ message: "Article updated successfully", article });
   } catch (error) {
-    res.status(500).json({ message: "Error updating article", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating article", error: error.message });
   }
 };
 
 // Get all articles
 exports.getAllArticles = async (req, res) => {
   try {
-    const articles = await Article.find().populate("specialistId", "firstName lastName profileImage");
+    const articles = await Article.find().populate(
+      "specialistId",
+      "firstName lastName profileImage"
+    );
     res.status(200).json(articles);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching articles", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching articles", error: error.message });
   }
 };
 
@@ -140,21 +179,23 @@ exports.getArticleById = async (req, res) => {
     }
     res.status(200).json(article);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching article", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching article", error: error.message });
   }
 };
 
 // Delete an article
 exports.deleteArticle = async (req, res) => {
   try {
-    const article = await Article.findById(req.params.id);
+    const article = await Article.findByIdAndDelete(req.params.id);
     if (!article) {
       return res.status(404).json({ message: "Article not found" });
     }
 
-    await article.deleteOne();
     res.status(200).json({ message: "Article deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting article", error: error.message });
   }
 };
+
