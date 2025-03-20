@@ -11,6 +11,8 @@ router.get("/:specialistId/:date", verifyToken, timeSlotController.getAvailableS
 router.post("/", verifyToken, timeSlotController.addTimeSlot);
 // Update the time slot (specialist)
 router.put("/:slotId", verifyToken, timeSlotController.updateTimeSlot);
+// Delete the time slot (specialist)
+router.delete("/:slotId", verifyToken, timeSlotController.deleteTimeSlot);
 // Book a time slot
 router.post("/book", verifyToken, timeSlotController.bookTimeSlot);
 

@@ -231,3 +231,44 @@ exports.bookTimeSlot = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Delete Appointment (specialist)
+exports.deleteTimeSlot = async (req, res) => {
+  try {
+    const { slotId } = req.params;
+
+    // Check if the time slot exists
+    const slot = await TimeSlot.findById(slotId);
+    if (!slot) {
+      return res.status(404).json({
+        success: false,
+        message: "Time slot not found",
+      });
+    }
+
+    // Check if the slot is booked in any future appointments
+    const existingAppointments = await Appointment.find({
+      timeSlot: slotId,
+      appointmentDate: { $gte: new Date() }, // Check future appointments
+      status: { $nin: ["completed", "declined"] },
+    });
+
+    if (existingAppointments.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete a slot with upcoming appointments",
+      });
+    }
+
+    // Delete the time slot if it's not booked
+    await TimeSlot.findByIdAndDelete(slotId);
+
+    res.status(200).json({
+      success: true,
+      message: "Time slot deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting slot:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
