@@ -97,16 +97,22 @@ exports.createAppointment = async (req, res) => {
     const existingAppointment = await Appointment.findOne({
       patient: patientId,
       specialist: specialistId,
-      status: { $nin: ["completed", "declined"] }, 
+      status: { $nin: ["completed", "declined"] },
     });
 
     if (existingAppointment) {
-      return res.status(400).json({ error: "You already have an active appointment with this specialist" });
+      return res
+        .status(400)
+        .json({
+          error: "You already have an active appointment with this specialist",
+        });
     }
 
     // Validate working hours
     if (!specialist.workingHours?.start || !specialist.workingHours?.end) {
-      return res.status(400).json({ error: "Specialist's working hours are not set" });
+      return res
+        .status(400)
+        .json({ error: "Specialist's working hours are not set" });
     }
 
     // Parse the selected time
@@ -119,10 +125,13 @@ exports.createAppointment = async (req, res) => {
     const requestedTime = startTimeObj.toISOString().substring(11, 16);
 
     // Generate available slots
-    const allSlots = generateTimeSlots(specialist.workingHours.start, specialist.workingHours.end);
+    const allSlots = generateTimeSlots(
+      specialist.workingHours.start,
+      specialist.workingHours.end
+    );
 
     // Ensure selected time is a valid slot
-    const isValidSlot = allSlots.some(slot => slot.start === requestedTime);
+    const isValidSlot = allSlots.some((slot) => slot.start === requestedTime);
     if (!isValidSlot) {
       return res.status(400).json({ error: "Invalid time slot" });
     }
@@ -142,7 +151,7 @@ exports.createAppointment = async (req, res) => {
       patient: patientId,
       specialist: specialistId,
       startTime: startTimeObj,
-      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000), 
+      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000),
       message,
     });
 
@@ -153,7 +162,9 @@ exports.createAppointment = async (req, res) => {
       "You have a new appointment request."
     );
 
-    res.status(201).json({ message: "Appointment created successfully", appointment });
+    res
+      .status(201)
+      .json({ message: "Appointment created successfully", appointment });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -226,7 +237,7 @@ exports.getPatientAppointments = async (req, res) => {
       .sort({ appointmentDate: 1 });
 
     // Ensure startTime and endTime are returned as strings
-    appointments.forEach(appointment => {
+    appointments.forEach((appointment) => {
       if (appointment.timeSlot) {
         // These are already strings in MongoDB, but ensure they are passed as such
         const { startTime, endTime } = appointment.timeSlot;
@@ -241,7 +252,6 @@ exports.getPatientAppointments = async (req, res) => {
   }
 };
 
-
 // Get all appointments for a specialist
 exports.getSpecialistAppointments = async (req, res) => {
   try {
@@ -252,7 +262,7 @@ exports.getSpecialistAppointments = async (req, res) => {
       .sort({ appointmentDate: 1 });
 
     // Ensure startTime and endTime are returned as strings
-    appointments.forEach(appointment => {
+    appointments.forEach((appointment) => {
       if (appointment.timeSlot) {
         const { startTime, endTime } = appointment.timeSlot;
         appointment.timeSlot.startTime = startTime || "Invalid Time";
@@ -426,7 +436,7 @@ exports.getCompletedAppointments = async (req, res) => {
       .sort({ startTime: -1 });
 
     // Ensure startTime and endTime are returned as strings
-    appointments.forEach(appointment => {
+    appointments.forEach((appointment) => {
       if (appointment.timeSlot) {
         const { startTime, endTime } = appointment.timeSlot;
         appointment.timeSlot.startTime = startTime || "Invalid Time";
@@ -457,6 +467,70 @@ exports.getCompletedAppointments = async (req, res) => {
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Error fetching completed appointments:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get completed appointments grouped by week for a specialist
+// Get completed appointments grouped by day for a specialist
+exports.getWeeklyCompletedAppointments = async (req, res) => {
+  try {
+    const { specialistId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const getStartOfWeek = (date) => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust if Sunday
+      return new Date(d.setDate(diff));
+    };
+
+    const start = startDate
+      ? getStartOfWeek(new Date(startDate))
+      : getStartOfWeek(new Date());
+    const end = endDate
+      ? getStartOfWeek(new Date(endDate)).setDate(
+          getStartOfWeek(new Date(endDate)).getDate() + 6
+        )
+      : getStartOfWeek(new Date()).setDate(getStartOfWeek(new Date()).getDate() + 6);
+
+    const appointments = await Appointment.find({
+      specialist: specialistId,
+      status: "completed",
+      appointmentDate: { $gte: start, $lte: end },
+    });
+
+    // Group data by day
+    const dailyData = {};
+    appointments.forEach((appointment) => {
+      const date = new Date(appointment.appointmentDate).toISOString().split("T")[0];
+      if (!dailyData[date]) {
+        dailyData[date] = 0;
+      }
+      dailyData[date]++;
+    });
+
+    // Generate all 7 days of the week to ensure completeness
+    const generateDays = (start, end) => {
+      const days = [];
+      let current = new Date(start);
+      while (current <= end) {
+        const dateStr = current.toISOString().split("T")[0];
+        days.push({
+          date: dateStr,
+          day: current.toLocaleString("en-US", { weekday: "short" }), // Short day name
+          count: dailyData[dateStr] || 0,
+        });
+        current.setDate(current.getDate() + 1);
+      }
+      return days;
+    };
+
+    const formattedData = generateDays(start, new Date(end));
+
+    res.status(200).json(formattedData);
+  } catch (error) {
+    console.error("Error fetching daily completed appointments:", error);
     res.status(500).json({ error: error.message });
   }
 };
