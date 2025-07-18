@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     profileImage: { type: String, default: null },
     phoneNumber: { type: String, required: true },
-    gender: {type: String, required: true, enum:['male', female]}, // Here's where i add the gender for filtering later for both users
+    gender: {type: String, required: true, enum:['male', 'female']}, // Here's where i add the gender for filtering later for both users
     userType: { type: String, required: true, enum: ['patient', 'specialist'] },
   },
   { timestamps: true, discriminatorKey: 'userType' }
