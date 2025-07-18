@@ -79,7 +79,7 @@ exports.verifyOTP = async (req, res) => {
 
 // Register User
 exports.createUser = async (req, res) => {
-  const { firstName, lastName, email, password, ...otherDetails } = req.body;
+  const { firstName, lastName, email, password, gender, ...otherDetails } = req.body;
 
   try {
     const lowerCaseEmail = email.toLowerCase();
