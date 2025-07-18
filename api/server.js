@@ -33,7 +33,7 @@ mongoose
 const db = mongoose.connection.useDb("Armstrong");
 
 // Use socket.io
-initializeSocket(http.createServer(app));  // Use the HTTP server for socket.io
+initializeSocket(http.createServer(app));  
 
 // Routes
 app.get("/", (req, res) => res.send("Express on Vercel"));

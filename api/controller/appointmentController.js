@@ -471,7 +471,7 @@ exports.getCompletedAppointments = async (req, res) => {
   }
 };
 
-// Get completed appointments grouped by week for a specialist
+// Get completed appointments grouped by week for a specialist (Removed)
 // Get completed appointments grouped by day for a specialist
 exports.getWeeklyCompletedAppointments = async (req, res) => {
   try {
@@ -499,7 +499,7 @@ exports.getWeeklyCompletedAppointments = async (req, res) => {
       status: "completed",
       appointmentDate: { $gte: start, $lte: end },
     });
-
+ 
     // Group data by day
     const dailyData = {};
     appointments.forEach((appointment) => {

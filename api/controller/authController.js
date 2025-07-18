@@ -97,6 +97,7 @@ exports.createUser = async (req, res) => {
         lastName,
         email: lowerCaseEmail,
         password,
+        gender,
         ...otherDetails,
       });
     } else {
@@ -105,6 +106,7 @@ exports.createUser = async (req, res) => {
         lastName,
         email: lowerCaseEmail,
         password,
+        gender,
         ...otherDetails,
       });
     }
