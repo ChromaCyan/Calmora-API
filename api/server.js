@@ -17,6 +17,7 @@ const surveyRoutes = require("./routes/surveyRoute");
 const articleRoutes = require("./routes/articleRoute");
 const notificationRoutes = require("./routes/notificationRoute");
 const timeslotRoutes = require("./routes/timeslotRoute");
+const geminiRoutes = require("./routes/geminiRoute");
 
 // Important Imports
 const app = express();
@@ -46,6 +47,7 @@ app.use("/api/survey", surveyRoutes);
 app.use("/api/article", articleRoutes);
 app.use("/api/notification", notificationRoutes);
 app.use("/api/timeslot", timeslotRoutes);
+app.use("/api/chatbot", geminiRoutes);
 
 // Export the app to allow Vercel to handle it
 module.exports = app;
