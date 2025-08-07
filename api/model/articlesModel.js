@@ -25,6 +25,12 @@ const articleSchema = new mongoose.Schema(
       ],
       required: true,
     },
+    targetGender: {
+      type: String,
+      enum: ["male", "female", "everyone"],
+      default: "everyone",
+      required: true,
+    },
   },
   { timestamps: true }
 );

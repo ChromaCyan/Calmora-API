@@ -3,7 +3,7 @@ const User = require("../model/userModel");
 // Fetch all specialists
 async function getSpecialists() {
   const specialists = await User.find({ userType: 'specialist' }).select(
-    'firstName lastName email specialization licenseNumber bio yearsOfExperience languagesSpoken availability reviews'
+    'firstName lastName email gender specialization licenseNumber bio yearsOfExperience languagesSpoken availability reviews'
   );
   return specialists;
 }

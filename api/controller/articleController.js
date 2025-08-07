@@ -12,6 +12,7 @@ exports.createArticle = async (req, res) => {
       additionalImages,
       specialistId,
       categories,
+      targetGender,
     } = req.body;
 
     // Check if the author (Specialist) exists
@@ -37,6 +38,13 @@ exports.createArticle = async (req, res) => {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
+    const allowedGenders = ["male", "female", "everyone"];
+    if (!allowedGenders.includes(targetGender)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid target gender provided" });
+    }
+
     console.log("Categories:", categories);
 
     // Create the article
@@ -47,6 +55,7 @@ exports.createArticle = async (req, res) => {
       additionalImages,
       specialistId,
       categories,
+      targetGender,
     });
 
     console.log(req.body);
@@ -83,12 +92,10 @@ exports.getArticlesBySpecialist = async (req, res) => {
 
     res.status(200).json(articles);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching specialist articles",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching specialist articles",
+      error: error.message,
+    });
   }
 };
 
@@ -103,6 +110,7 @@ exports.updateArticle = async (req, res) => {
       additionalImages,
       specialistId,
       categories,
+      targetGender,
     } = req.body;
 
     // Find the article
@@ -136,12 +144,23 @@ exports.updateArticle = async (req, res) => {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
+    const allowedGenders = [
+      "male", 
+      "female", 
+      "everyone"];
+    if (targetGender && !allowedGenders.includes(targetGender)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid target gender provided" });
+    }
+
     // Update the article fields
     article.title = title || article.title;
     article.content = content || article.content;
     article.heroImage = heroImage || article.heroImage;
     article.additionalImages = additionalImages || article.additionalImages;
     article.categories = categories || article.categories;
+    article.targetGender = targetGender || article.targetGender;
 
     await article.save();
     res.status(200).json({ message: "Article updated successfully", article });
@@ -157,7 +176,7 @@ exports.getAllArticles = async (req, res) => {
   try {
     const articles = await Article.find().populate(
       "specialistId",
-      "firstName lastName profileImage"
+      "firstName lastName profileImage gender"
     );
     res.status(200).json(articles);
   } catch (error) {
@@ -195,7 +214,8 @@ exports.deleteArticle = async (req, res) => {
 
     res.status(200).json({ message: "Article deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting article", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting article", error: error.message });
   }
 };
-
