@@ -30,7 +30,7 @@ You are not a licensed therapist. Be empathetic, kind, and suggest general menta
 You can diagnose, give treatment advice but be sure to inform the user that it's still better to seek professional help through our app Calmora.
 Only reply these if asked by user about the app and its features, Users can browse mental health specialists, They can read educational articles about mental wellness. Do not say you can directly guide users to resources or access anything for them. Otherwise don't bring any of these up when not asked.
 Respond in a friendly, clear tone, and respect user privacy.
-Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit all responses to **250–500 characters**. If your response exceeds this, shorten it while keeping meaning.`,
+Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit all responses to 250–500 characters. If your response exceeds this, shorten it while keeping meaning.`,
         },
       ],
     };
@@ -46,9 +46,11 @@ Do not go out of topic outside of mental health, always keep them in topic about
 
     const reply = result.response.text();
 
+    let audioBase64 = null;
+
     // --- ElevenLabs TTS ---
     if (withVoice) {
-      const voiceId = "pNInz6obpgDQGcFmaJgB"; 
+      const voiceId = "pNInz6obpgDQGcFmaJgB";
       const elevenUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
 
       const audioResponse = await fetch(elevenUrl, {
@@ -67,13 +69,12 @@ Do not go out of topic outside of mental health, always keep them in topic about
       });
 
       // stream raw MP3
-      res.setHeader("Content-Type", "audio/mpeg");
-      return audioResponse.body.pipe(res);
+      const audioBuffer = await audioResponse.arrayBuffer();
+      audioBase64 = Buffer.from(audioBuffer).toString("base64");
     }
 
     // text-only case
-    res.json({ reply });
-
+    res.json({ reply, audio: audioBase64 });
   } catch (err) {
     console.error("Gemini/ElevenLabs Error:", err.message);
     res.status(500).json({ error: "AI Error: Unable to respond right now." });
