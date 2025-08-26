@@ -21,8 +21,6 @@ exports.askGemini = async (req, res) => {
     return res.status(400).json({ error: "Message is required" });
   }
 
-  const maxLength = withVoice ? 250 : null;
-
   try {
     // --- Gemini ---
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -51,10 +49,6 @@ Do not go out of topic outside of mental health, always keep them in topic about
     });
 
     const reply = result.response.text();
-
-    if (withVoice && reply.length > 250) {
-      reply = reply.slice(0, 250);
-    }
 
      let id = null;
 
