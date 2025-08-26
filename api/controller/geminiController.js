@@ -1,5 +1,4 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fetch = require("node-fetch");
 
 // This fucking part is broken so ill prolly temporarily
 // leave the API Key here while i look for fix since it can't read the .env file for some reason on this controller alone.
@@ -48,6 +47,8 @@ Do not go out of topic outside of mental health, always keep them in topic about
     const reply = result.response.text();
 
     // --- ElevenLabs TTS ---
+    let audioBase64 = null;
+
     if (withVoice) {
       const voiceId = "pNInz6obpgDQGcFmaJgB"; // default voice
       const elevenUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
