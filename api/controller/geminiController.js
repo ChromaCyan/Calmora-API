@@ -17,9 +17,7 @@ exports.askGemini = async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-live-001",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const systemPrompt = {
       role: "user",
@@ -43,29 +41,10 @@ Do not go out of topic outside of mental health, always keep them in topic about
     // Ask for both text + audio
     const result = await model.generateContent({
       contents: [systemPrompt, userPrompt],
-      generationConfig: {
-        responseMimeType: "audio/wav",
-      },
     });
 
     const response = result.response;
-
-    // Extract audio part (base64 string)
-    const audioPart = response.candidates[0].content.parts.find(
-      (p) => p.inlineData && p.inlineData.mimeType.startsWith("audio/")
-    );
-
-    let audioBase64 = null;
-    if (audioPart) {
-      audioBase64 = audioPart.inlineData.data;
-    }
-
-    // Send both text and audio back
-    res.json({
-      reply: response.text(),
-      audio: audioBase64,
-    });
-
+    res.json({ reply: response.text() });
   } catch (err) {
     console.error("Gemini Error:", err.message);
     res.status(500).json({ error: "AI Error: Unable to respond right now." });
