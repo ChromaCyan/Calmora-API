@@ -13,7 +13,6 @@ const ELEVEN_API_KEY = "sk_f0d2df505095cd0f357b6e6e2fd51b41dd7f424ca9c73aba";
 
 const ttsCache = {};
 
-const maxLength = withVoice ? 250 : null;
 
 exports.askGemini = async (req, res) => {
   const { message, withVoice } = req.body;
@@ -21,6 +20,8 @@ exports.askGemini = async (req, res) => {
   if (!message) {
     return res.status(400).json({ error: "Message is required" });
   }
+
+  const maxLength = withVoice ? 250 : null;
 
   try {
     // --- Gemini ---
@@ -35,8 +36,7 @@ You are not a licensed therapist. Be empathetic, kind, and suggest general menta
 You can diagnose, give treatment advice but be sure to inform the user that it's still better to seek professional help through our app Calmora.
 Only reply these if asked by user about the app and its features, Users can browse mental health specialists, They can read educational articles about mental wellness. Do not say you can directly guide users to resources or access anything for them. Otherwise don't bring any of these up when not asked.
 Respond in a friendly, clear tone, and respect user privacy.
-Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit your response to ${withVoice ? 'max 250 characters' : 'any length'}.
-Respond in a friendly, clear tone and stay on topic about mental wellbeing.`,
+Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit your response to ${withVoice ? 'max 250 characters' : 'any length'}. Respond in a friendly, clear tone and stay on topic about mental wellbeing.`,
         },
       ],
     };
@@ -51,6 +51,10 @@ Respond in a friendly, clear tone and stay on topic about mental wellbeing.`,
     });
 
     const reply = result.response.text();
+
+    if (withVoice && reply.length > 250) {
+      reply = reply.slice(0, 250);
+    }
 
      let id = null;
 
