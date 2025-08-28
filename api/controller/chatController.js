@@ -52,11 +52,6 @@ exports.sendMessage = async (req, res) => {
         // Get recipientId (other participant in chat)
         const recipientId = chat.participants.find((id) => id.toString() !== userId.toString());
 
-        // Save notification for recipient
-        if (recipientId) {
-            await createNotification(recipientId, "chat", `New message from ${sender.firstName}`);
-        }
-
         res.status(200).json({ message: "Message sent.", chat });
     } catch (error) {
         console.error(error);
