@@ -28,10 +28,10 @@ const sendEmail = async (email, otp) => {
     });
 
     const mailOptions = {
-      from: `"Armstrong Support" <${process.env.EMAIL}>`,
+      from: `"Calmora Support" <${process.env.EMAIL}>`,
       to: email,
-      subject: "Welcome to Armstrong - Verify Your Email",
-      text: `Welcome to Armstrong!
+      subject: "Welcome to Calmora - Verify Your Email",
+      text: `Welcome to Calmora!
 
 We’re excited to have you on board. Please use the following OTP to verify the OTP:
 
@@ -39,10 +39,10 @@ OTP Code: ${otp}
 
 This code will expire in 5 minutes. Please do not share it with anyone.
 
-If you did not create an account with Armstrong, you can safely ignore this email.
+If you did not create an account with Calmora, you can safely ignore this email.
 
 Thank you,  
-The Armstrong Team`,
+The Calmora Team`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -399,7 +399,7 @@ exports.requestPasswordReset = async (req, res) => {
     }
 
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await OTP.findOneAndUpdate(
       { email: lowerCaseEmail },
