@@ -12,7 +12,6 @@ const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
 const otpEmail = require("../utils/templates/otpEmail");
-const accountDeletedEmail = require("../utils/templates/accountDeleted");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 const otps = {};
@@ -417,9 +416,6 @@ exports.getProfile = async (req, res) => {
 };
 
 // Request Password Reset
-const sendMail = require("../utils/sendMail");
-const otpEmailTemplate = require("../utils/templates/otpEmail");
-
 exports.requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
