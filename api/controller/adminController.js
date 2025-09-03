@@ -29,7 +29,7 @@ const sendMail = async ({ to, subject, text }) => {
 exports.getAllSpecialists = async (req, res) => {
   try {
     const specialists = await Specialist.find(
-      { approvalStatus: { $ne: "rejected" } }, 
+      { approvalStatus: "approved" }, 
       "-password"
     );
 
@@ -38,6 +38,7 @@ exports.getAllSpecialists = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // Get pending specialists
 exports.getPendingSpecialists = async (req, res) => {
   try {
