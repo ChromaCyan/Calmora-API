@@ -9,6 +9,9 @@ const Patient = require("../model/patientModel");
 const accountApprovedEmail = require("../utils/templates/accountApproved");
 const accountRejectedEmail = require("../utils/templates/accountRejected");
 const accountDeletedEmail = require("../utils/templates/accountDeleted");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 
@@ -26,7 +29,7 @@ const sendMail = async ({ to, subject, text, html }) => {
     to,
     subject,
     text,
-    html, 
+    html,
   });
 };
 
