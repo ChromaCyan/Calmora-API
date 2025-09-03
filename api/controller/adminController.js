@@ -8,7 +8,6 @@ const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
-const otps = {};
 
 // UTIL SEND EMAIL LOGIC
 const sendMail = async ({ to, subject, text }) => {
@@ -25,104 +24,20 @@ const sendMail = async ({ to, subject, text }) => {
   });
 };
 
-// OTP generator
-const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
-// Register User
-exports.createUser = async (req, res) => {
-  const { firstName, lastName, email, password, gender, ...otherDetails } =
-    req.body;
-
-  try {
-    const lowerCaseEmail = email.toLowerCase();
-
-    const existingUser = await User.findOne({ email: lowerCaseEmail });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    let newUser;
-
-    // Specialist registration
-    if (req.body.specialization) {
-      newUser = new Specialist({
-        firstName,
-        lastName,
-        email: lowerCaseEmail,
-        password,
-        gender,
-        approvalStatus: "pending",
-        ...otherDetails,
-      });
-
-      await newUser.save();
-
-      // Send "under review" email
-      await sendMail({
-        to: lowerCaseEmail,
-        subject: "Your Specialist Registration is Under Review",
-        text: `Hi ${firstName},
-
-Thank you for registering as a specialist with Calmora.
-Your account is currently under review by our admin team.
-You will receive another email once your account has been approved or rejected.
-
-- Armstrong Team`,
-      });
-
-      return res.status(201).json({
-        message: "Specialist registered successfully, pending admin approval",
-        userId: newUser._id,
-      });
-    }
-
-    // Patient registration
-    newUser = new Patient({
-      firstName,
-      lastName,
-      email: lowerCaseEmail,
-      password,
-      gender,
-      ...otherDetails,
-    });
-
-    await newUser.save();
-
-    // OTP verification for patients
-    const otp = generateOTP();
-    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 };
-    await sendMail({
-      to: lowerCaseEmail,
-      subject: "OTP Verification Code",
-      text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
-    });
-
-    const token = jwt.sign(
-      { id: newUser._id, userType: newUser.userType },
-      JWT_SECRET,
-      { expiresIn: "3h" }
-    );
-
-    return res.status(201).json({
-      message: "Patient created successfully, OTP sent",
-      token,
-      userId: newUser._id,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Get all specialists
+// Get all approved or pending specialists 
 exports.getAllSpecialists = async (req, res) => {
   try {
-    const specialists = await Specialist.find({}, "-password");
+    const specialists = await Specialist.find(
+      { approvalStatus: { $ne: "rejected" } }, 
+      "-password"
+    );
+
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // Get pending specialists
 exports.getPendingSpecialists = async (req, res) => {
   try {

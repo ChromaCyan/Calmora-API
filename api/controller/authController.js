@@ -79,7 +79,8 @@ exports.verifyOTP = async (req, res) => {
 
 // Register User
 exports.createUser = async (req, res) => {
-  const { firstName, lastName, email, password, gender, ...otherDetails } = req.body;
+  const { firstName, lastName, email, password, gender, ...otherDetails } =
+    req.body;
 
   try {
     const lowerCaseEmail = email.toLowerCase();
@@ -91,6 +92,7 @@ exports.createUser = async (req, res) => {
 
     let newUser;
 
+    // Specialist registration
     if (req.body.specialization) {
       newUser = new Specialist({
         firstName,
@@ -98,24 +100,51 @@ exports.createUser = async (req, res) => {
         email: lowerCaseEmail,
         password,
         gender,
+        approvalStatus: "pending",
         ...otherDetails,
       });
-    } else {
-      newUser = new Patient({
-        firstName,
-        lastName,
-        email: lowerCaseEmail,
-        password,
-        gender,
-        ...otherDetails,
+
+      await newUser.save();
+
+      // Send "under review" email
+      await sendMail({
+        to: lowerCaseEmail,
+        subject: "Your Specialist Registration is Under Review",
+        text: `Hi ${firstName},
+
+Thank you for registering as a specialist with Calmora.
+Your account is currently under review by our admin team.
+You will receive another email once your account has been approved or rejected.
+
+- Calmora Team`,
+      });
+
+      return res.status(201).json({
+        message: "Specialist registered successfully, pending admin approval",
+        userId: newUser._id,
       });
     }
 
+    // Patient registration
+    newUser = new Patient({
+      firstName,
+      lastName,
+      email: lowerCaseEmail,
+      password,
+      gender,
+      ...otherDetails,
+    });
+
     await newUser.save();
 
+    // OTP verification for patients
     const otp = generateOTP();
     otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 };
-    await sendEmail(lowerCaseEmail, otp);
+    await sendMail({
+      to: lowerCaseEmail,
+      subject: "OTP Verification Code",
+      text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
+    });
 
     const token = jwt.sign(
       { id: newUser._id, userType: newUser.userType },
@@ -123,8 +152,8 @@ exports.createUser = async (req, res) => {
       { expiresIn: "3h" }
     );
 
-    res.status(201).json({
-      message: "User created successfully, OTP sent",
+    return res.status(201).json({
+      message: "Patient created successfully, OTP sent",
       token,
       userId: newUser._id,
     });

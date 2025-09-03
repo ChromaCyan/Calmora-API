@@ -16,7 +16,6 @@ router.get('/specialists', verifyToken, authController.getSpecialistList);
 router.get('/patient-data', verifyToken, isPatient, authController.getPatientData); 
 
 // Admin Routes (Managing Specialist)
-router.post('/admin/register', adminController.createUser);
 router.get('/admin/specialists', verifyToken, isAdmin, adminController.getAllSpecialists);
 router.get('/admin/specialists/pending', verifyToken, isAdmin, adminController.getPendingSpecialists);
 router.get('/admin/specialists/:specialistId', verifyToken, isAdmin, adminController.getSpecialistById);
