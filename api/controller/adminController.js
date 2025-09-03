@@ -12,11 +12,13 @@ const accountDeletedEmail = require("../utils/templates/accountDeleted");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 
-// UTIL SEND EMAIL LOGIC
-const sendMail = async ({ to, subject, text }) => {
+const sendMail = async ({ to, subject, text, html }) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
-    auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD },
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_PASSWORD,
+    },
   });
 
   await transporter.sendMail({
@@ -24,7 +26,7 @@ const sendMail = async ({ to, subject, text }) => {
     to,
     subject,
     text,
-    html,
+    html, 
   });
 };
 
@@ -32,10 +34,9 @@ const sendMail = async ({ to, subject, text }) => {
 exports.getAllSpecialists = async (req, res) => {
   try {
     const specialists = await Specialist.find(
-      { approvalStatus: "approved" },
+      { approvalStatus: { $nin: ["pending", "rejected"] } },
       "-password"
     );
-
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
