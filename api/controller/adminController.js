@@ -6,6 +6,9 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
+const accountApprovedEmail = require("../utils/templates/accountApproved");
+const accountRejectedEmail = require("../utils/templates/accountRejected");
+const accountDeletedEmail = require("../utils/templates/accountDeleted");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 
@@ -21,15 +24,15 @@ const sendMail = async ({ to, subject, text }) => {
     to,
     subject,
     text,
+    html,
   });
 };
 
-
-// Get all approved or pending specialists 
+// Get all approved or pending specialists
 exports.getAllSpecialists = async (req, res) => {
   try {
     const specialists = await Specialist.find(
-      { approvalStatus: "approved" }, 
+      { approvalStatus: "approved" },
       "-password"
     );
 
@@ -63,7 +66,9 @@ exports.approveSpecialist = async (req, res) => {
     );
 
     if (!specialist) {
-      return res.status(404).json({ success: false, message: "Specialist not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Specialist not found" });
     }
 
     const token = jwt.sign(
@@ -80,6 +85,7 @@ exports.approveSpecialist = async (req, res) => {
 Congratulations! Your account has been approved and you can now log in to Armstrong as a licensed specialist.
 
 - Calmora Team`,
+      html: accountApprovedEmail(specialist.firstName),
     });
 
     res.status(200).json({ success: true, data: specialist, token });
@@ -87,7 +93,6 @@ Congratulations! Your account has been approved and you can now log in to Armstr
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 // Reject a specialist
 exports.rejectSpecialist = async (req, res) => {
@@ -108,12 +113,8 @@ exports.rejectSpecialist = async (req, res) => {
     await sendMail({
       to: specialist.email,
       subject: "Your Specialist Account is Rejected",
-      text: `Hi ${specialist.firstName},
-
-Unfortunately, your registration as a specialist was not approved after review.
-If you believe this is a mistake, please reply to this email.
-
-- Calmora Team`,
+      text: `Hi ${specialist.firstName}, Unfortunately, your registration was not approved. Please contact us if you believe this is an error.`,
+      html: accountRejectedEmail(specialist.firstName),
     });
 
     res.status(200).json({ success: true, data: specialist });
@@ -145,6 +146,7 @@ Your specialist account has been permanently removed from Calmora by the admin t
 If you believe this was a mistake, please contact support.
 
 - Calmora Team`,
+      html: accountDeletedEmail(specialist.firstName),
     });
 
     res.status(200).json({

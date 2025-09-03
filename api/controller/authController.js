@@ -11,16 +11,21 @@ const OTP = require("../model/otpModel");
 const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
+const otpEmail = require("../utils/templates/otpEmail");
+const accountDeletedEmail = require("../utils/templates/accountDeleted");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 const otps = {};
 
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
-const sendMail = async ({ to, subject, text }) => {
+const sendMail = async ({ to, subject, text, html }) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
-    auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD },
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_PASSWORD,
+    },
   });
 
   await transporter.sendMail({
@@ -28,6 +33,7 @@ const sendMail = async ({ to, subject, text }) => {
     to,
     subject,
     text,
+    html,
   });
 };
 
@@ -95,6 +101,7 @@ Your account is currently under review by our admin team.
 You will receive another email once your account has been approved or rejected.
 
 - Calmora Team`,
+        html: accountPendingEmail(specialist.firstName),
       });
 
       return res.status(201).json({
@@ -192,7 +199,6 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-
 // Edit logged-in user's profile
 exports.editProfile = async (req, res) => {
   const { id, userType } = req.user;
@@ -206,12 +212,10 @@ exports.editProfile = async (req, res) => {
         const { start, end } = updateData.workingHours || {};
 
         if (!start || !end) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: "Both start and end times are required.",
-            });
+          return res.status(400).json({
+            success: false,
+            message: "Both start and end times are required.",
+          });
         }
 
         const [startHour, startMin] = start.split(":").map(Number);
@@ -221,12 +225,10 @@ exports.editProfile = async (req, res) => {
           startHour > endHour ||
           (startHour === endHour && startMin >= endMin)
         ) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: "Start time must be before end time.",
-            });
+          return res.status(400).json({
+            success: false,
+            message: "Start time must be before end time.",
+          });
         }
       }
 
@@ -296,7 +298,10 @@ exports.editProfile = async (req, res) => {
         const [startHour, startMin] = formattedStart.split(":").map(Number);
         const [endHour, endMin] = formattedEnd.split(":").map(Number);
 
-        if (startHour > endHour || (startHour === endHour && startMin >= endMin)) {
+        if (
+          startHour > endHour ||
+          (startHour === endHour && startMin >= endMin)
+        ) {
           return res.status(400).json({
             success: false,
             message: "Start time must be before end time.",
@@ -323,11 +328,15 @@ exports.editProfile = async (req, res) => {
         { new: true, runValidators: true }
       );
     } else {
-      return res.status(400).json({ success: false, message: "Invalid user type" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user type" });
     }
 
     if (!updatedUser) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({ success: true, data: updatedUser });
@@ -408,8 +417,12 @@ exports.getProfile = async (req, res) => {
 };
 
 // Request Password Reset
+const sendMail = require("../utils/sendMail");
+const otpEmailTemplate = require("../utils/templates/otpEmail");
+
 exports.requestPasswordReset = async (req, res) => {
   const { email } = req.body;
+
   try {
     const lowerCaseEmail = email.toLowerCase();
     let user = await User.findOne({ email: lowerCaseEmail });
@@ -435,7 +448,13 @@ exports.requestPasswordReset = async (req, res) => {
 
     console.log(`Generated OTP for ${lowerCaseEmail}: ${otp}`);
 
-    await sendEmail(lowerCaseEmail, otp);
+    await sendMail({
+      to: lowerCaseEmail,
+      subject: "Your Calmora OTP Code",
+      text: `Hi ${user.firstName}, your OTP is ${otp}`,
+      html: otpEmail(user.firstName, otp),
+    });
+
     res.status(200).json({ message: "OTP sent to email for password reset" });
   } catch (error) {
     res.status(500).json({ message: error.message });
