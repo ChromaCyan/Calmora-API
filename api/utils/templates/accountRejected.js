@@ -1,7 +1,7 @@
 const accountRejectedEmail = (firstName) => `
   <div style="font-family: Arial, sans-serif; background: #f8f9fa; padding: 40px 20px;">
     <div style="max-width: 600px; background: #fff; margin: 0 auto; border-radius: 8px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center;">
-    <img src="https://xipqovlvavpygfnzjtpg.supabase.co/storage/v1/object/sign/profile-images/calmora_circle_crop.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV80YTAyMDlhYS00NjI2LTRhOTktYTM5Ny1jYzBmZDM2ZWJjNDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9maWxlLWltYWdlcy9jYWxtb3JhX2NpcmNsZV9jcm9wLnBuZyIsImlhdCI6MTc1NjkwMTU1NywiZXhwIjoxNzg4NDM3NTU3fQ.4zMqfAPZNB6pq3wwTfBL2oqGR-OF1N7Pxgx-Y50hbGY" alt="Calmora Logo" style="height: 50px; margin-bottom: 30px;" />
+    <img src="https://xipqovlvavpygfnzjtpg.supabase.co/storage/v1/object/sign/profile-images/Calmora.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV80YTAyMDlhYS00NjI2LTRhOTktYTM5Ny1jYzBmZDM2ZWJjNDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcm9maWxlLWltYWdlcy9DYWxtb3JhLnBuZyIsImlhdCI6MTc1NjkwNTIxNSwiZXhwIjoxNzg4NDQxMjE1fQ.fgcPnsPaGOlVUGU2DdGtMtYjOk40ZDGGM9RTotd_zUU" alt="Calmora Logo" style="height: 50px; margin-bottom: 30px;" />
       <h2 style="color: #dc3545;">Account Rejected</h2>
       <p style="font-size: 16px; color: #495057;">Hi <strong>${firstName}</strong>,</p>
       <p style="font-size: 16px; color: #495057;">
