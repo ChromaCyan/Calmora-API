@@ -139,7 +139,7 @@ exports.loginUser = async (req, res) => {
 
   try {
     const lowerCaseEmail = email.toLowerCase();
-    let user = await User.findOne({ email: email.toLowerCase() });
+    let user = await User.findOne({ email: lowerCaseEmail });
 
     if (!user) {
       user =
@@ -151,6 +151,22 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    if (user.userType === "Specialist") {
+      if (user.approvalStatus === "rejected") {
+        return res.status(403).json({
+          success: false,
+          message: "Your account was rejected and cannot log in.",
+        });
+      }
+
+      if (user.approvalStatus === "pending") {
+        return res.status(403).json({
+          success: false,
+          message: "Your account is still pending approval.",
+        });
+      }
+    }
+
     const token = jwt.sign(
       { id: user._id, userType: user.userType },
       JWT_SECRET,
@@ -158,14 +174,17 @@ exports.loginUser = async (req, res) => {
     );
 
     res.status(200).json({
+      success: true,
       token,
       userId: user._id,
       userType: user.userType,
+      approvalStatus: user.approvalStatus || null,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Edit logged-in user's profile
 exports.editProfile = async (req, res) => {
