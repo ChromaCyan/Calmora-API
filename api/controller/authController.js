@@ -12,7 +12,7 @@ const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
 const otpEmail = require("../utils/templates/otpEmail");
-const accountPendingEmail = require("../utils/templates/accountPending");
+const accountDeletedEmail = require("../utils/templates/accountDeleted");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 const otps = {};
@@ -101,7 +101,7 @@ Your account is currently under review by our admin team.
 You will receive another email once your account has been approved or rejected.
 
 - Calmora Team`,
-        html: accountPendingEmail(specialist.firstName),
+        html: accountPendingEmail(newUser.firstName),
       });
 
       return res.status(201).json({
