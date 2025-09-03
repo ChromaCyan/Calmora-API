@@ -17,40 +17,18 @@ const otps = {};
 
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
-const sendEmail = async (email, otp) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+const sendMail = async ({ to, subject, text }) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.EMAIL, pass: process.env.EMAIL_PASSWORD },
+  });
 
-    const mailOptions = {
-      from: `"Calmora Support" <${process.env.EMAIL}>`,
-      to: email,
-      subject: "Welcome to Calmora - Verify Your Email",
-      text: `Welcome to Calmora!
-
-We’re excited to have you on board. Please use the following OTP to verify the OTP:
-
-OTP Code: ${otp}
-
-This code will expire in 5 minutes. Please do not share it with anyone.
-
-If you did not create an account with Calmora, you can safely ignore this email.
-
-Thank you,  
-The Calmora Team`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully");
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw new Error("Error sending email");
-  }
+  await transporter.sendMail({
+    from: `"Calmora Support" <${process.env.EMAIL}>`,
+    to,
+    subject,
+    text,
+  });
 };
 
 // OTP Verification
