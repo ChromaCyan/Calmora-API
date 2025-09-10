@@ -212,7 +212,7 @@ exports.getApprovedArticleById = async (req, res) => {
 // Get all pending articles
 exports.getPendingArticles = async (req, res) => {
   try {
-    const articles = await Article.find({ status: "pending" }).populate("specialistId", "firstName lastName");
+    const articles = await Article.find({ status: "pending" }).populate("specialistId", "firstName lastName profileImage");
     res.status(200).json({ success: true, data: articles });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
