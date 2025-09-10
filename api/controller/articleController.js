@@ -56,6 +56,7 @@ exports.createArticle = async (req, res) => {
       specialistId,
       categories,
       targetGender,
+      status: "pending"
     });
 
     console.log(req.body);
@@ -79,7 +80,7 @@ exports.getArticlesBySpecialist = async (req, res) => {
       return res.status(400).json({ message: "Invalid specialist ID format" });
     }
 
-    const articles = await Article.find({ specialistId }).populate(
+    const articles = await Article.find({ specialistId, status: "approved" }).populate(
       "specialistId",
       "firstName lastName profileImage"
     );
@@ -174,15 +175,13 @@ exports.updateArticle = async (req, res) => {
 // Get all articles
 exports.getAllArticles = async (req, res) => {
   try {
-    const articles = await Article.find().populate(
+    const articles = await Article.find({ status: "approved" }).populate(
       "specialistId",
       "firstName lastName profileImage gender"
     );
     res.status(200).json(articles);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching articles", error: error.message });
+    res.status(500).json({ message: "Error fetching articles", error: error.message });
   }
 };
 

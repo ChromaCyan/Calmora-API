@@ -22,6 +22,11 @@ router.get('/admin/specialists/:specialistId', verifyToken, isAdmin, adminContro
 router.put('/admin/specialists/:specialistId/approve', verifyToken, isAdmin, adminController.approveSpecialist);
 router.put('/admin/specialists/:specialistId/reject', verifyToken, isAdmin, adminController.rejectSpecialist);
 router.delete('/admin/specialists/:specialistId', verifyToken, isAdmin, adminController.deleteSpecialist);
+router.get('/admin/articles/pending', verifyToken, isAdmin, adminController.getPendingArticles);
+router.get('/admin/articles/approved/:articleId', verifyToken, isAdmin, adminController.getApprovedArticleById);
+router.put('/admin/articles/:articleId/approve', verifyToken, isAdmin, adminController.approveArticle);
+router.put('/admin/articles/:articleId/reject', verifyToken, isAdmin, adminController.rejectArticle);
+router.put('/admin/articles/:articleId/unpublish', verifyToken, isAdmin, adminController.unpublishArticle);
 
 // Fetch a specialist by ID
 router.get('/specialists/:specialistId', verifyToken, authController.getSpecialistById);

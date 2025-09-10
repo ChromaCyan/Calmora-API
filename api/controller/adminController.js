@@ -9,6 +9,8 @@ const Patient = require("../model/patientModel");
 const accountApprovedEmail = require("../utils/templates/accountApproved");
 const accountRejectedEmail = require("../utils/templates/accountRejected");
 const accountDeletedEmail = require("../utils/templates/accountDeleted");
+const Article = require("../model/articlesModel");
+const { createNotification } = require("../controller/notificationController");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -175,6 +177,136 @@ exports.getSpecialistById = async (req, res) => {
     }
 
     res.status(200).json({ success: true, data: specialist });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get a single approved article by ID
+exports.getApprovedArticleById = async (req, res) => {
+  try {
+    const { articleId } = req.params;
+
+    const article = await Article.findOne({
+      _id: articleId,
+      status: "approved"
+    }).populate("specialistId", "firstName lastName profileImage");
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: "Approved article not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: article,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// Get all pending articles
+exports.getPendingArticles = async (req, res) => {
+  try {
+    const articles = await Article.find({ status: "pending" }).populate("specialistId", "firstName lastName");
+    res.status(200).json({ success: true, data: articles });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Approve an article
+exports.approveArticle = async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const article = await Article.findByIdAndUpdate(
+      articleId,
+      { status: "approved" },
+      { new: true }
+    );
+    if (!article) return res.status(404).json({ success: false, message: "Article not found" });
+    res.status(200).json({ success: true, message: "Article approved", data: article });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Unpublish an article and notify the specialist
+exports.unpublishArticle = async (req, res) => {
+  try {
+    const { articleId } = req.params;
+
+    const article = await Article.findByIdAndUpdate(
+      articleId,
+      { status: "unpublished" },
+      { new: true }
+    );
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: "Article not found",
+      });
+    }
+
+    // Send notification to the specialist
+    await createNotification(
+      article.specialistId,
+      "article",
+      `Your article "${article.title}" has been unpublished by an admin.`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Article unpublished and notification sent.",
+      data: article,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+// Reject an article with a reason
+exports.rejectArticle = async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const { reason } = req.body;
+
+    const article = await Article.findByIdAndUpdate(
+      articleId,
+      {
+        status: "rejected",
+        rejectionReason: reason || "Not specified",
+      },
+      { new: true }
+    );
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: "Article not found",
+      });
+    }
+
+    await createNotification(
+      article.specialistId,
+      "article",
+      `Your article "${article.title}" was rejected. Reason: ${reason || "Not specified"}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Article rejected and notification sent.",
+      data: article,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

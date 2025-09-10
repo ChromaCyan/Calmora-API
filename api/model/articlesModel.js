@@ -13,7 +13,7 @@ const articleSchema = new mongoose.Schema(
     },
     publishedDate: { type: Date, default: Date.now },
     categories: {
-      type: [String], 
+      type: [String],
       enum: [
         "health",
         "social",
@@ -31,6 +31,13 @@ const articleSchema = new mongoose.Schema(
       default: "everyone",
       required: true,
     },
+
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "unpublished"],
+      default: "pending",
+    },
+    rejectionReason: { type: String, default: null },
   },
   { timestamps: true }
 );
