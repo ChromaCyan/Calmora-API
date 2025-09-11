@@ -148,9 +148,18 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ error: "Time slot already booked" });
     }
 
+    // Create the appointment
+    const appointment = await Appointment.create({
+      patient: patientId,
+      specialist: specialistId,
+      startTime: startTimeObj,
+      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000),
+      message,
+    });
+
     // Send notification to specialist
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
-      userId: specialist._id,
+      userId: specialistId.toString(),
       type: "appointment",
       message: "You have a new appointment request.",
       extra: { appointmentId: appointment._id, patientId }, 
