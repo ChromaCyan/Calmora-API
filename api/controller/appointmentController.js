@@ -4,6 +4,9 @@ const { io } = require("../socket/socket");
 const { createNotification } = require("./notificationController");
 const Availability = require("../model/availabilityModel");
 const axios = require("axios");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 // Function to generate time slots
 function generateTimeSlots(start, end) {
