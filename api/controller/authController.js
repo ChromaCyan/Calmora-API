@@ -349,7 +349,7 @@ exports.editProfile = async (req, res) => {
 // Get list of specialists
 exports.getSpecialistList = async (req, res) => {
   try {
-    const specialists = await Specialist.find({}, "-password");
+    const specialists = await Specialist.find({ approvalStatus: "approved" }, "-password");
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
