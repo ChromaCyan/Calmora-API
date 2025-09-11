@@ -269,12 +269,13 @@ exports.unpublishArticle = async (req, res) => {
       });
     }
 
-    // Send notification to the specialist
-    await createNotification(
-      article.specialistId,
-      "article",
-      `Your article "${article.title}" has been unpublished by an admin.`
-    );
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: article.specialistId,
+      type: "article",
+      message: `Your article "${article.title}" has been approved for unpublished by Admin Team.`,
+      extra: { articleId: article._id },
+    });
+
 
     res.status(200).json({
       success: true,
