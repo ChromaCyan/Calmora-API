@@ -3,6 +3,7 @@ const User = require("../model/userModel");
 const { io } = require("../socket/socket");
 const { createNotification } = require("./notificationController");
 const Availability = require("../model/availabilityModel");
+const axios = require("axios");
 
 // Function to generate time slots
 function generateTimeSlots(start, end) {
@@ -101,11 +102,9 @@ exports.createAppointment = async (req, res) => {
     });
 
     if (existingAppointment) {
-      return res
-        .status(400)
-        .json({
-          error: "You already have an active appointment with this specialist",
-        });
+      return res.status(400).json({
+        error: "You already have an active appointment with this specialist",
+      });
     }
 
     // Validate working hours
@@ -156,11 +155,11 @@ exports.createAppointment = async (req, res) => {
     });
 
     // Send notification to specialist
-    await createNotification(
-      specialistId,
-      "appointment",
-      "You have a new appointment request."
-    );
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: specialistId,
+      type: "appointment",
+      message: "You have a new appointment request.",
+    });
 
     res
       .status(201)
@@ -169,63 +168,6 @@ exports.createAppointment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// // Create a new appointment
-// exports.createAppointment = async (req, res) => {
-//   try {
-//     const { patientId, specialistId, startTime, message } = req.body;
-
-//     // Validate that the specialist exists
-//     const specialist = await User.findById(specialistId);
-//     if (!specialist || specialist.userType !== "Specialist") {
-//       return res.status(404).json({ error: "Specialist not found" });
-//     }
-
-//     // Check if the patient already has an appointment with this specialist
-//     const existingAppointment = await Appointment.findOne({
-//       patient: patientId,
-//       specialist: specialistId,
-//       status: { $nin: ["completed", "declined"] },
-//     });
-
-//     if (existingAppointment) {
-//       return res.status(400).json({ error: "You already have an active appointment with this specialist" });
-//     }
-
-//     // Calculate endTime (1 hour after startTime)
-//     const endTime = new Date(startTime);
-//     endTime.setHours(endTime.getHours() + 1);
-
-//     // Check for overlapping appointments
-//     const isOverlap = await Appointment.checkOverlap(specialistId, startTime, endTime);
-//     if (isOverlap) {
-//       return res.status(400).json({ error: "This time slot is already booked" });
-//     }
-
-//     // Create the appointment
-//     const appointment = await Appointment.create({
-//       patient: patientId,
-//       specialist: specialistId,
-//       startTime,
-//       endTime,
-//       message,
-//     });
-
-//     // Notification for specialist about the new appointment
-//     await createNotification(specialistId, "appointment", "You have a new appointment request.");
-
-//     // io.to(specialistId).emit("new_notification", {
-//     //   type: "appointment",
-//     //   message: `New appointment created by ${patientId}`,
-//     //   appointmentId: appointment._id,
-//     //   timestamp: new Date(),
-//     // });
-
-//     res.status(201).json({ message: "Appointment created successfully", appointment });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
 
 // Get all appointments for a patient
 exports.getPatientAppointments = async (req, res) => {
@@ -307,20 +249,15 @@ exports.acceptAppointment = async (req, res) => {
         .json({ error: "Patient data missing in appointment" });
     }
 
-    // Notification for patient
-    // await createNotification(patient._id, "appointment", "Your appointment has been accepted.");
-    // io.to(patient._id).emit("new_notification", {
-    //   type: "appointment",
-    //   message: `Your appointment with ${appointment.specialist.firstName} has been accepted.`,
-    //   appointmentId: appointment._id,
-    //   timestamp: new Date(),
-    // });
-
-    await createNotification(
-      patient._id,
-      "appointment",
-      "Your appointment has been accepted."
-    );
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: patient._id,
+      type: "appointment",
+      message: "Your appointment has been accepted.",
+      extra: {
+        appointmentId: appointment._id,
+        specialistId: appointment.specialist._id,
+      },
+    });
 
     res.status(200).json({ message: "Appointment accepted", appointment });
   } catch (error) {
@@ -350,18 +287,15 @@ exports.declineAppointment = async (req, res) => {
         .json({ error: "Patient data missing in appointment" });
     }
 
-    // Notification for patient
-    await createNotification(
-      patient._id,
-      "appointment",
-      "Your appointment has been rejected."
-    );
-    // io.to(patient._id).emit("new_notification", {
-    //   type: "appointment",
-    //   message: `Your appointment with ${appointment.specialist.firstName} has been declined.`,
-    //   appointmentId: appointment._id,
-    //   timestamp: new Date(),
-    // });
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: patient._id,
+      type: "appointment",
+      message: `Your appointment with ${appointment.specialist.firstName} has been declined.`,
+      extra: {
+        appointmentId: appointment._id,
+        specialistId: appointment.specialist._id,
+      },
+    });
 
     res.status(200).json({ message: "Appointment declined", appointment });
   } catch (error) {
@@ -407,11 +341,15 @@ exports.completeAppointment = async (req, res) => {
     await appointment.save();
 
     // Notify patient that their appointment is completed
-    await createNotification(
-      appointment.patient._id,
-      "appointment",
-      `Your appointment with ${appointment.specialist.firstName} has been marked as completed.`
-    );
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: appointment.patient._id,
+      type: "appointment",
+      message: `Your appointment with ${appointment.specialist.firstName} has been marked as completed.`,
+      extra: {
+        appointmentId: appointment._id,
+        specialistId: appointment.specialist._id,
+      },
+    });
 
     res
       .status(200)
@@ -492,18 +430,22 @@ exports.getWeeklyCompletedAppointments = async (req, res) => {
       ? getStartOfWeek(new Date(endDate)).setDate(
           getStartOfWeek(new Date(endDate)).getDate() + 6
         )
-      : getStartOfWeek(new Date()).setDate(getStartOfWeek(new Date()).getDate() + 6);
+      : getStartOfWeek(new Date()).setDate(
+          getStartOfWeek(new Date()).getDate() + 6
+        );
 
     const appointments = await Appointment.find({
       specialist: specialistId,
       status: "completed",
       appointmentDate: { $gte: start, $lte: end },
     });
- 
+
     // Group data by day
     const dailyData = {};
     appointments.forEach((appointment) => {
-      const date = new Date(appointment.appointmentDate).toISOString().split("T")[0];
+      const date = new Date(appointment.appointmentDate)
+        .toISOString()
+        .split("T")[0];
       if (!dailyData[date]) {
         dailyData[date] = 0;
       }

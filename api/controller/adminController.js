@@ -12,6 +12,7 @@ const accountDeletedEmail = require("../utils/templates/accountDeleted");
 const Article = require("../model/articlesModel");
 const { createNotification } = require("../controller/notificationController");
 const dotenv = require("dotenv");
+const axios = require("axios");
 
 dotenv.config();
 
@@ -189,7 +190,7 @@ exports.getApprovedArticleById = async (req, res) => {
 
     const article = await Article.findOne({
       _id: articleId,
-      status: "approved"
+      status: "approved",
     }).populate("specialistId", "firstName lastName profileImage");
 
     if (!article) {
@@ -208,11 +209,13 @@ exports.getApprovedArticleById = async (req, res) => {
   }
 };
 
-
 // Get all pending articles
 exports.getPendingArticles = async (req, res) => {
   try {
-    const articles = await Article.find({ status: "pending" }).populate("specialistId", "firstName lastName profileImage");
+    const articles = await Article.find({ status: "pending" }).populate(
+      "specialistId",
+      "firstName lastName profileImage"
+    );
     res.status(200).json({ success: true, data: articles });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -228,8 +231,21 @@ exports.approveArticle = async (req, res) => {
       { status: "approved" },
       { new: true }
     );
-    if (!article) return res.status(404).json({ success: false, message: "Article not found" });
-    res.status(200).json({ success: true, message: "Article approved", data: article });
+    if (!article)
+      return res
+        .status(404)
+        .json({ success: false, message: "Article not found" });
+
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: article.specialistId,
+      type: "article",
+      message: `Your article "${article.title}" has been approved for publishing.`,
+      extra: { articleId: article._id },
+    });
+
+    res
+      .status(200)
+      .json({ success: true, message: "Article approved", data: article });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -273,7 +289,6 @@ exports.unpublishArticle = async (req, res) => {
   }
 };
 
-
 // Reject an article with a reason
 exports.rejectArticle = async (req, res) => {
   try {
@@ -296,11 +311,17 @@ exports.rejectArticle = async (req, res) => {
       });
     }
 
-    await createNotification(
-      article.specialistId,
-      "article",
-      `Your article "${article.title}" was rejected. Reason: ${reason || "Not specified"}`
-    );
+    const message = `Your article "${article.title}" was rejected. Reason: ${
+      reason || "Not specified"
+    }`;
+
+    // Notify specialist
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: article.specialistId,
+      type: "article",
+      message,
+      extra: { articleId: article._id },
+    });
 
     res.status(200).json({
       success: true,
