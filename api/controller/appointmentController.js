@@ -158,6 +158,7 @@ exports.createAppointment = async (req, res) => {
     });
 
     // Send notification to specialist
+    console.log(`📤 Emitting notification to user ${userId}`);
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
       userId: specialistId,
       type: "appointment",
