@@ -148,18 +148,9 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ error: "Time slot already booked" });
     }
 
-    // Create the appointment
-    const appointment = await Appointment.create({
-      patient: patientId,
-      specialist: specialistId,
-      startTime: startTimeObj,
-      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000),
-      message,
-    });
-
     // Send notification to specialist
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
-      userId: specialistId,
+      userId: specialist._id,
       type: "appointment",
       message: "You have a new appointment request.",
       extra: { appointmentId: appointment._id, patientId }, 
@@ -413,7 +404,6 @@ exports.getCompletedAppointments = async (req, res) => {
   }
 };
 
-// Get completed appointments grouped by week for a specialist (Removed)
 // Get completed appointments grouped by day for a specialist
 exports.getWeeklyCompletedAppointments = async (req, res) => {
   try {
@@ -423,7 +413,7 @@ exports.getWeeklyCompletedAppointments = async (req, res) => {
     const getStartOfWeek = (date) => {
       const d = new Date(date);
       const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust if Sunday
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
       return new Date(d.setDate(diff));
     };
 
