@@ -36,17 +36,16 @@ exports.submitSurveyResponse = async (req, res) => {
     );
 
     let interpretation = "Severe Mental Health Concerns";
-    if (totalScore >= 85 && totalScore <= 100) {
+    if (totalScore >= 30) {
       interpretation = "Minimal or No Signs of Mental Health Problems";
-    } else if (totalScore >= 70 && totalScore < 85) {
+    } else if (totalScore >= 22 && totalScore < 30) {
       interpretation = "Mild Mental Health Concerns";
-    } else if (totalScore >= 50 && totalScore < 70) {
+    } else if (totalScore >= 15 && totalScore < 22) {
       interpretation = "Moderate Mental Health Concerns";
-    } else if (totalScore < 50) {
+    } else if (totalScore < 15) {
       interpretation = "Severe Mental Health Concerns";
     }
 
-    // Save Survey Response
     const surveyResponse = new SurveyResponse({
       patient: patientId,
       surveyId,
@@ -62,6 +61,7 @@ exports.submitSurveyResponse = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get Survey Results for a Patient
 exports.getLatestPatientSurveyResult = async (req, res) => {
