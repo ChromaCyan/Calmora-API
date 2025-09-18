@@ -182,7 +182,7 @@ exports.loginUser = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, userType: user.userType },
+      { id: user._id, userType: user.userType, surveyCompleted: user.surveyCompleted || false,},
       JWT_SECRET,
       { expiresIn: "4d" }
     );
