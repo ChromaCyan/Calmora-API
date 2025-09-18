@@ -193,6 +193,7 @@ exports.loginUser = async (req, res) => {
       userId: user._id,
       userType: user.userType,
       approvalStatus: user.approvalStatus || null,
+      surveyCompleted: user.surveyCompleted || false, 
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

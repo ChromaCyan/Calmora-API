@@ -42,8 +42,6 @@ exports.submitSurveyResponse = async (req, res) => {
       interpretation = "Mild Mental Health Concerns";
     } else if (totalScore >= 15 && totalScore < 22) {
       interpretation = "Moderate Mental Health Concerns";
-    } else if (totalScore < 15) {
-      interpretation = "Severe Mental Health Concerns";
     }
 
     const surveyResponse = new SurveyResponse({
@@ -56,11 +54,19 @@ exports.submitSurveyResponse = async (req, res) => {
     });
 
     await surveyResponse.save();
-    res.status(201).json({ success: true, data: surveyResponse });
+
+    await Patient.findByIdAndUpdate(patientId, { surveyCompleted: true });
+
+    res.status(201).json({
+      success: true,
+      data: surveyResponse,
+      message: "Survey submitted and flag updated",
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 // Get Survey Results for a Patient
