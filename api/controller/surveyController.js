@@ -1,6 +1,7 @@
 const Survey = require("../model/surveyModel");
 const SurveyResponse = require("../model/surveyResponse");
 const Article = require("../model/articlesModel");
+const Patient = require('../model/patientModel');
 
 // Create a new survey
 exports.createSurvey = async (req, res) => {
@@ -66,8 +67,6 @@ exports.submitSurveyResponse = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 // Get Survey Results for a Patient
 exports.getLatestPatientSurveyResult = async (req, res) => {
