@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
+const axios = require("axios");
 
 dotenv.config();
 
@@ -104,6 +105,20 @@ You will receive another email once your account has been approved or rejected.
         html: accountPendingEmail(newUser.firstName),
       });
 
+      // Notify all admins
+      const admins = await User.find({ userType: "Admin" });
+      for (const admin of admins) {
+        await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+          userId: admin._id,
+          type: "specialist_pending",
+          message: `A new specialist account (${newUser.firstName} ${newUser.lastName}) is pending review.`,
+          extra: {
+            specialistId: newUser._id,
+            email: newUser.email,
+          },
+        });
+      }
+
       return res.status(201).json({
         message: "Specialist registered successfully, pending admin approval",
         userId: newUser._id,
@@ -182,7 +197,11 @@ exports.loginUser = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, userType: user.userType, surveyCompleted: user.surveyCompleted || false,},
+      {
+        id: user._id,
+        userType: user.userType,
+        surveyCompleted: user.surveyCompleted || false,
+      },
       JWT_SECRET,
       { expiresIn: "4d" }
     );
@@ -193,7 +212,7 @@ exports.loginUser = async (req, res) => {
       userId: user._id,
       userType: user.userType,
       approvalStatus: user.approvalStatus || null,
-      surveyCompleted: user.surveyCompleted || false, 
+      surveyCompleted: user.surveyCompleted || false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -350,7 +369,10 @@ exports.editProfile = async (req, res) => {
 // Get list of specialists
 exports.getSpecialistList = async (req, res) => {
   try {
-    const specialists = await Specialist.find({ approvalStatus: "approved" }, "-password");
+    const specialists = await Specialist.find(
+      { approvalStatus: "approved" },
+      "-password"
+    );
     res.status(200).json({ success: true, data: specialists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

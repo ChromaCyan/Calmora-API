@@ -1,6 +1,11 @@
 const Article = require("../model/articlesModel");
 const Specialist = require("../model/userModel");
 const mongoose = require("mongoose");
+const User = require("../model/userModel");
+const axios = require("axios");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 // Create a new article
 exports.createArticle = async (req, res) => {
@@ -56,12 +61,25 @@ exports.createArticle = async (req, res) => {
       specialistId,
       categories,
       targetGender,
-      status: "pending"
+      status: "pending",
     });
 
     console.log(req.body);
 
     await article.save();
+
+    const admins = await User.find({ userType: "Admin" });
+    for (const admin of admins) {
+      await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+        userId: admin._id,
+        type: "article_pending",
+        message: `A new article titled "${article.title}" has been submitted by ${specialist.firstName} ${specialist.lastName} and is pending review.`,
+        extra: {
+          articleId: article._id,
+          specialistId: specialist._id,
+        },
+      });
+    }
 
     res.status(201).json({ message: "Article created successfully", article });
   } catch (error) {
@@ -80,10 +98,10 @@ exports.getArticlesBySpecialist = async (req, res) => {
       return res.status(400).json({ message: "Invalid specialist ID format" });
     }
 
-    const articles = await Article.find({ specialistId, status: "approved" }).populate(
-      "specialistId",
-      "firstName lastName profileImage"
-    );
+    const articles = await Article.find({
+      specialistId,
+      status: "approved",
+    }).populate("specialistId", "firstName lastName profileImage");
 
     if (!articles || articles.length === 0) {
       return res
@@ -145,14 +163,9 @@ exports.updateArticle = async (req, res) => {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
-    const allowedGenders = [
-      "male", 
-      "female", 
-      "everyone"];
+    const allowedGenders = ["male", "female", "everyone"];
     if (targetGender && !allowedGenders.includes(targetGender)) {
-      return res
-        .status(400)
-        .json({ message: "Invalid target gender provided" });
+      return res.status(400).json({ message: "Invalid target gender provided" });
     }
 
     // Update the article fields
@@ -163,7 +176,25 @@ exports.updateArticle = async (req, res) => {
     article.categories = categories || article.categories;
     article.targetGender = targetGender || article.targetGender;
 
+    article.status = "pending";
+
     await article.save();
+
+    // Notify admins
+    const specialist = await Specialist.findById(article.specialistId);
+    const admins = await User.find({ userType: "Admin" });
+    for (const admin of admins) {
+      await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+        userId: admin._id,
+        type: "article_updated_pending",
+        message: `An article titled "${article.title}" by ${specialist.firstName} ${specialist.lastName} has been updated and is pending review again.`,
+        extra: {
+          articleId: article._id,
+          specialistId: specialist._id,
+        },
+      });
+    }
+
     res.status(200).json({ message: "Article updated successfully", article });
   } catch (error) {
     res
@@ -171,6 +202,7 @@ exports.updateArticle = async (req, res) => {
       .json({ message: "Error updating article", error: error.message });
   }
 };
+
 
 // Get all articles
 exports.getAllArticles = async (req, res) => {
@@ -181,7 +213,9 @@ exports.getAllArticles = async (req, res) => {
     );
     res.status(200).json(articles);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching articles", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching articles", error: error.message });
   }
 };
 

@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
     profileImage: { type: String, default: null },
     phoneNumber: { type: String, required: true },
     gender: {type: String, required: true, enum:['male', 'female']}, 
-    userType: { type: String, required: true, enum: ['patient', 'specialist'] },
+    userType: { type: String, required: true, enum: ['patient', 'specialist', 'admin'] },
   },
   { timestamps: true, discriminatorKey: 'userType' }
 );
