@@ -110,7 +110,7 @@ You will receive another email once your account has been approved or rejected.
       for (const admin of admins) {
         await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
           userId: admin._id,
-          type: "specialist_pending",
+          type: "appointment",
           message: `A new specialist account (${newUser.firstName} ${newUser.lastName}) is pending review.`,
           extra: {
             specialistId: newUser._id,

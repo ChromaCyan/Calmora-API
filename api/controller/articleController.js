@@ -72,7 +72,7 @@ exports.createArticle = async (req, res) => {
     for (const admin of admins) {
       await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
         userId: admin._id,
-        type: "article_pending",
+        type: "article",
         message: `A new article titled "${article.title}" has been submitted by ${specialist.firstName} ${specialist.lastName} and is pending review.`,
         extra: {
           articleId: article._id,
@@ -186,7 +186,7 @@ exports.updateArticle = async (req, res) => {
     for (const admin of admins) {
       await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
         userId: admin._id,
-        type: "article_updated_pending",
+        type: "article",
         message: `An article titled "${article.title}" by ${specialist.firstName} ${specialist.lastName} has been updated and is pending review again.`,
         extra: {
           articleId: article._id,
