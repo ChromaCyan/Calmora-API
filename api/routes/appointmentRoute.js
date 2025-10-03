@@ -7,12 +7,6 @@ const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMidd
 ////////////////////////////////////////////////////////////
 // Appointment Routes
 
-// Check the time Slot Available 
-router.get('/available-slots/:specialistId/:date', verifyToken, isPatient, appointmentController.getAvailableTimeSlots);
-
-// Create a new appointment (Patient only)
-router.post("/create-appointment", verifyToken, isPatient, appointmentController.createAppointment);
-
 // Get all appointments for a patient (Patient only)
 router.get("/patient/:patientId", verifyToken, isPatient, appointmentController.getPatientAppointments);
 
