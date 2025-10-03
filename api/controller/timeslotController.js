@@ -2,6 +2,10 @@ const TimeSlot = require("../model/timeslotModel");
 const { createNotification } = require("./notificationController");
 const Appointment = require("../model/appointmentModel");
 const User = require("../model/userModel");
+const axios = require("axios");
+const { io } = require("../socket/socket");
+const { createNotification } = require("./notificationController");
+const Availability = require("../model/availabilityModel");
 
 exports.getAvailableSlots = async (req, res) => {
   try {
@@ -59,7 +63,6 @@ exports.getAllSlots = async (req, res) => {
         .json({ success: false, message: "No time slots found" });
     }
 
-    // Inside getAllSlots
     console.log(`Specialist ID: ${specialistId}`);
     console.log(`Found Slots: ${slots.length}`);
     console.log(`Slots:`, slots);
@@ -124,7 +127,7 @@ exports.updateTimeSlot = async (req, res) => {
           endTime: { $gt: startTime },
         },
         {
-          _id: { $ne: slotId }, 
+          _id: { $ne: slotId },
           dayOfWeek: dayOfWeek || slot.dayOfWeek,
           startTime: { $lt: endTime },
           endTime: { $gt: startTime },
@@ -139,7 +142,6 @@ exports.updateTimeSlot = async (req, res) => {
       });
     }
 
-    // Update the slot details
     slot.startTime = startTime || slot.startTime;
     slot.endTime = endTime || slot.endTime;
     slot.dayOfWeek = dayOfWeek || slot.dayOfWeek;
@@ -159,7 +161,6 @@ exports.bookTimeSlot = async (req, res) => {
 
     const { patientId, slotId, message, appointmentDate } = req.body;
 
-    // Validate time slot existence
     const slot = await TimeSlot.findById(slotId).populate("specialist");
 
     if (!slot) {
@@ -169,7 +170,6 @@ exports.bookTimeSlot = async (req, res) => {
         .json({ success: false, message: "Time slot not found" });
     }
 
-    // Block second booking with the same specialist (unless previous one is completed/declined)
     const existingSpecialistAppointment = await Appointment.findOne({
       patient: patientId,
       specialist: slot.specialist._id,
@@ -185,7 +185,6 @@ exports.bookTimeSlot = async (req, res) => {
       });
     }
 
-    // Block booking from another specialist on the same date or same time slot
     const conflictingAppointment = await Appointment.findOne({
       patient: patientId,
       appointmentDate: {
@@ -204,7 +203,6 @@ exports.bookTimeSlot = async (req, res) => {
       });
     }
 
-    // Check if this exact slot is already booked for the selected date
     const existingAppointment = await Appointment.findOne({
       timeSlot: slot._id,
       appointmentDate: new Date(appointmentDate),
@@ -219,7 +217,6 @@ exports.bookTimeSlot = async (req, res) => {
       });
     }
 
-    // Validate patient existence
     const patient = await User.findById(patientId);
     if (!patient || patient.userType !== "Patient") {
       console.log("Patient not found or invalid user type!");
@@ -228,7 +225,6 @@ exports.bookTimeSlot = async (req, res) => {
         .json({ success: false, message: "Patient not found" });
     }
 
-    // Create the new appointment with `appointmentDate`
     const newAppointment = await Appointment.create({
       patient: patientId,
       specialist: slot.specialist._id,
@@ -238,11 +234,12 @@ exports.bookTimeSlot = async (req, res) => {
     });
 
     // Send notification to specialist
-    await createNotification(
-      slot.specialist._id,
-      "appointment",
-      "You have a new appointment request."
-    );
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: slot.specialist._id.toString(),
+      type: "appointment",
+      message: "You have a new appointment request.",
+      extra: { appointmentId: newAppointment._id, patientId },
+    });
 
     console.log("Appointment created successfully:", newAppointment);
 
@@ -262,7 +259,6 @@ exports.deleteTimeSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
 
-    // Check if the time slot exists
     const slot = await TimeSlot.findById(slotId);
     if (!slot) {
       return res.status(404).json({
@@ -271,10 +267,9 @@ exports.deleteTimeSlot = async (req, res) => {
       });
     }
 
-    // Check if the slot is booked in any future appointments
     const existingAppointments = await Appointment.find({
       timeSlot: slotId,
-      appointmentDate: { $gte: new Date() }, // Check future appointments
+      appointmentDate: { $gte: new Date() },
       status: { $nin: ["completed", "declined"] },
     });
 
@@ -285,7 +280,6 @@ exports.deleteTimeSlot = async (req, res) => {
       });
     }
 
-    // Delete the time slot if it's not booked
     await TimeSlot.findByIdAndDelete(slotId);
 
     res.status(200).json({

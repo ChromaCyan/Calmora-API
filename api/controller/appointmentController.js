@@ -8,189 +8,52 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-// Function to generate time slots
-function generateTimeSlots(start, end) {
-  const slots = [];
-  let [startHour, startMinute] = start.split(":").map(Number);
-  let [endHour, endMinute] = end.split(":").map(Number);
-
-  let current = new Date();
-  current.setHours(startHour, startMinute, 0, 0);
-
-  const endTime = new Date();
-  endTime.setHours(endHour, endMinute, 0, 0);
-
-  while (current < endTime) {
-    let slotStart = `${current.getHours().toString().padStart(2, "0")}:${current
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-
-    current.setMinutes(current.getMinutes() + 60);
-
-    let slotEnd = `${current.getHours().toString().padStart(2, "0")}:${current
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-
-    slots.push({ start: slotStart, end: slotEnd });
-  }
-
-  return slots;
+function isPastDay(appointmentDate) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+  const apptDay = new Date(appointmentDate);
+  apptDay.setHours(0, 0, 0, 0); 
+  return apptDay < today; 
 }
-
-// Endpoint to get available time slots for a specialist
-exports.getAvailableTimeSlots = async (req, res) => {
-  try {
-    const { specialistId, date } = req.params;
-
-    // Validate specialist existence
-    const specialist = await User.findById(specialistId);
-    if (!specialist || specialist.userType !== "Specialist") {
-      return res.status(404).json({ error: "Specialist not found" });
-    }
-
-    const { start, end } = specialist.workingHours;
-    if (!start || !end) {
-      return res.status(400).json({ error: "Working hours not set" });
-    }
-
-    // Generate available slots
-    const allSlots = generateTimeSlots(start, end);
-
-    // Fetch booked appointments for the selected date
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    const bookedAppointments = await Appointment.find({
-      specialist: specialistId,
-      startTime: {
-        $gte: selectedDate,
-        $lt: new Date(selectedDate.setDate(selectedDate.getDate() + 1)),
-      },
-    }).select("startTime");
-
-    const bookedTimes = new Set(
-      bookedAppointments.map((appointment) =>
-        new Date(appointment.startTime).toISOString().substring(11, 16)
-      )
-    );
-
-    const availableSlots = allSlots.filter(
-      (slot) => !bookedTimes.has(slot.start)
-    );
-
-    res.status(200).json({ availableSlots });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Create an appointment
-exports.createAppointment = async (req, res) => {
-  try {
-    const { patientId, specialistId, startTime, message } = req.body;
-
-    // Validate specialist existence
-    const specialist = await User.findById(specialistId);
-    if (!specialist || specialist.userType !== "Specialist") {
-      return res.status(404).json({ error: "Specialist not found" });
-    }
-
-    // Check if the patient already has an appointment with this specialist
-    const existingAppointment = await Appointment.findOne({
-      patient: patientId,
-      specialist: specialistId,
-      status: { $nin: ["completed", "declined"] },
-    });
-
-    if (existingAppointment) {
-      return res.status(400).json({
-        error: "You already have an active appointment with this specialist",
-      });
-    }
-
-    // Validate working hours
-    if (!specialist.workingHours?.start || !specialist.workingHours?.end) {
-      return res
-        .status(400)
-        .json({ error: "Specialist's working hours are not set" });
-    }
-
-    // Parse the selected time
-    const startTimeObj = new Date(startTime);
-    if (isNaN(startTimeObj.getTime())) {
-      return res.status(400).json({ error: "Invalid start time format" });
-    }
-
-    // Convert selected time to "HH:MM" format
-    const requestedTime = startTimeObj.toISOString().substring(11, 16);
-
-    // Generate available slots
-    const allSlots = generateTimeSlots(
-      specialist.workingHours.start,
-      specialist.workingHours.end
-    );
-
-    // Ensure selected time is a valid slot
-    const isValidSlot = allSlots.some((slot) => slot.start === requestedTime);
-    if (!isValidSlot) {
-      return res.status(400).json({ error: "Invalid time slot" });
-    }
-
-    // Check if the selected time is already booked
-    const isBooked = await Appointment.exists({
-      specialist: specialistId,
-      startTime: startTimeObj, // Must match exact slot
-    });
-
-    if (isBooked) {
-      return res.status(400).json({ error: "Time slot already booked" });
-    }
-
-    // Create the appointment
-    const appointment = await Appointment.create({
-      patient: patientId,
-      specialist: specialistId,
-      startTime: startTimeObj,
-      endTime: new Date(startTimeObj.getTime() + 60 * 60 * 1000),
-      message,
-    });
-
-    // Send notification to specialist
-    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
-      userId: specialist._id.toString(), 
-      type: "appointment",
-      message: "You have a new appointment request.",
-      extra: { appointmentId: appointment._id, patientId }, 
-    });
-
-    res
-      .status(201)
-      .json({ message: "Appointment created successfully", appointment });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 // Get all appointments for a patient
 exports.getPatientAppointments = async (req, res) => {
   try {
     const { patientId } = req.params;
-    const appointments = await Appointment.find({ patient: patientId })
+
+    let appointments = await Appointment.find({ patient: patientId })
       .populate("specialist", "firstName lastName specialization profileImage")
       .populate("timeSlot", "startTime endTime dayOfWeek")
       .sort({ appointmentDate: 1 });
 
-    // Ensure startTime and endTime are returned as strings
-    appointments.forEach((appointment) => {
-      if (appointment.timeSlot) {
-        // These are already strings in MongoDB, but ensure they are passed as such
-        const { startTime, endTime } = appointment.timeSlot;
-        appointment.timeSlot.startTime = startTime || "Invalid Time";
-        appointment.timeSlot.endTime = endTime || "Invalid Time";
+    for (let appointment of appointments) {
+      if (
+        isPastDay(appointment.appointmentDate) &&
+        !["completed", "declined", "expired"].includes(appointment.status)
+      ) {
+        appointment.status = "expired";
+        await appointment.save();
+
+        // Notify patient
+        await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+          userId: appointment.patient,
+          type: "appointment",
+          message: `Your appointment with ${appointment.specialist.firstName} has expired.`,
+          extra: { appointmentId: appointment._id },
+        });
+
+        // Notify specialist
+        await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+          userId: appointment.specialist,
+          type: "appointment",
+          message: `The appointment with ${appointment.patient.firstName} has expired.`,
+          extra: { appointmentId: appointment._id },
+        });
       }
-    });
+    }
+
+    // Hide expired ones if you don’t want them in history
+    appointments = appointments.filter((a) => a.status !== "expired");
 
     res.status(200).json(appointments);
   } catch (error) {
@@ -198,33 +61,44 @@ exports.getPatientAppointments = async (req, res) => {
   }
 };
 
+
 // Get all appointments for a specialist
 exports.getSpecialistAppointments = async (req, res) => {
   try {
     const { specialistId } = req.params;
-    const appointments = await Appointment.find({ specialist: specialistId })
+
+    let appointments = await Appointment.find({ specialist: specialistId })
       .populate("patient", "firstName lastName profileImage")
       .populate("timeSlot", "startTime endTime dayOfWeek")
       .sort({ appointmentDate: 1 });
 
-    // Ensure startTime and endTime are returned as strings
-    appointments.forEach((appointment) => {
-      if (appointment.timeSlot) {
-        const { startTime, endTime } = appointment.timeSlot;
-        appointment.timeSlot.startTime = startTime || "Invalid Time";
-        appointment.timeSlot.endTime = endTime || "Invalid Time";
-      }
+    for (let appointment of appointments) {
+      if (
+        isPastDay(appointment.appointmentDate) &&
+        !["completed", "declined", "expired"].includes(appointment.status)
+      ) {
+        appointment.status = "expired";
+        await appointment.save();
 
-      // Ensure patient data is returned as strings (if necessary)
-      if (appointment.patient) {
-        const { firstName, lastName, profileImage } = appointment.patient;
-        appointment.patient = {
-          firstName: firstName || "Unknown",
-          lastName: lastName || "Unknown",
-          profileImage: profileImage || "No Image Available",
-        };
+        // Notify patient
+        await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+          userId: appointment.patient,
+          type: "appointment",
+          message: `Your appointment with ${appointment.specialist.firstName} has expired.`,
+          extra: { appointmentId: appointment._id },
+        });
+
+        // Notify specialist
+        await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+          userId: appointment.specialist,
+          type: "appointment",
+          message: `The appointment with ${appointment.patient.firstName} has expired.`,
+          extra: { appointmentId: appointment._id },
+        });
       }
-    });
+    }
+
+    appointments = appointments.filter((a) => a.status !== "expired");
 
     res.status(200).json(appointments);
   } catch (error) {

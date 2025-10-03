@@ -23,7 +23,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "declined", "completed"],
+      enum: ["pending", "accepted", "declined", "completed", "expired"],
       default: "pending",
     },
     message: String,
