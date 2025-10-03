@@ -4,7 +4,6 @@ const Appointment = require("../model/appointmentModel");
 const User = require("../model/userModel");
 const axios = require("axios");
 const { io } = require("../socket/socket");
-const { createNotification } = require("./notificationController");
 const Availability = require("../model/availabilityModel");
 
 exports.getAvailableSlots = async (req, res) => {
