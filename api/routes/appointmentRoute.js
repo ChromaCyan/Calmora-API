@@ -28,9 +28,6 @@ router.get("/appointments/completed/:userId", appointmentController.getCompleted
 // Get weekly completed appointments (Specialist)
 router.get("/completed/weekly/:specialistId",verifyToken,appointmentController.getWeeklyCompletedAppointments);
 
-// Create a new appointment (Patient only)
-router.post("/create-appointment", verifyToken, isPatient, appointmentController.createAppointment);
-
 ////////////////////////////////////////////////////////////
 // Availability Routes
 router.get("/specialist/:specialistId/availability", verifyToken, availabilityController.getAvailableDaysAndSlots); 
