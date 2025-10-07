@@ -122,6 +122,7 @@ exports.getRecommendedArticles = async (req, res) => {
     // Fetch articles that match the recommended categories
     const recommendedArticles = await Article.find({
       categories: { $in: categoriesToRecommend },
+      status: "pending",
     }).populate("specialistId", "firstName lastName profileImage");
 
     // Return the articles if found
