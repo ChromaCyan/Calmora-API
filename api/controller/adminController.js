@@ -130,12 +130,20 @@ exports.rejectSpecialist = async (req, res) => {
   }
 };
 
-// Delete a specialist
-exports.deleteSpecialist = async (req, res) => {
+// Reject a specialist with a reason
+exports.rejectSpecialist = async (req, res) => {
   const { specialistId } = req.params;
+  const { reason } = req.body;
 
   try {
-    const specialist = await Specialist.findByIdAndDelete(specialistId);
+    const specialist = await Specialist.findByIdAndUpdate(
+      specialistId,
+      {
+        approvalStatus: "rejected",
+        rejectionReason: reason || "No reason specified",
+      },
+      { new: true, runValidators: true }
+    );
 
     if (!specialist) {
       return res
@@ -143,22 +151,21 @@ exports.deleteSpecialist = async (req, res) => {
         .json({ success: false, message: "Specialist not found" });
     }
 
-    // Send account deletion email
+    const messageText = `Hi ${specialist.firstName}, unfortunately, your registration was not approved. Reason: ${
+      reason || "No reason specified"
+    }. Please contact us if you believe this is an error.`;
+
     await sendMail({
       to: specialist.email,
-      subject: "Your Specialist Account Has Been Deleted",
-      text: `Hi ${specialist.firstName},
-
-Your specialist account has been permanently removed from Calmora by the admin team. 
-If you believe this was a mistake, please contact support.
-
-- Calmora Team`,
-      html: accountDeletedEmail(specialist.firstName),
+      subject: "Your Specialist Account was Rejected",
+      text: messageText,
+      html: accountRejectedEmail(specialist.firstName, reason || "No reason specified"),
     });
 
     res.status(200).json({
       success: true,
-      message: "Specialist deleted successfully",
+      message: "Specialist rejected and notified.",
+      data: specialist,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -255,10 +262,14 @@ exports.approveArticle = async (req, res) => {
 exports.unpublishArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
+    const { reason } = req.body;
 
     const article = await Article.findByIdAndUpdate(
       articleId,
-      { status: "unpublished" },
+      {
+        status: "unpublished",
+        unpublishReason: reason || "No reason specified",
+      },
       { new: true }
     );
 
@@ -269,13 +280,16 @@ exports.unpublishArticle = async (req, res) => {
       });
     }
 
+    const message = `Your article "${article.title}" was unpublished. Reason: ${
+      reason || "No reason specified"
+    }`;
+
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
       userId: article.specialistId,
       type: "article",
-      message: `Your article "${article.title}" has been approved for unpublished by Admin Team.`,
+      message,
       extra: { articleId: article._id },
     });
-
 
     res.status(200).json({
       success: true,

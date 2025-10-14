@@ -43,6 +43,18 @@ exports.createArticle = async (req, res) => {
       return res.status(400).json({ message: "Invalid categories provided" });
     }
 
+    const existingArticle = await Article.findOne({
+      title: { $regex: new RegExp(`^${title}$`, "i") }, 
+      specialistId,
+    });
+
+    if (existingArticle) {
+      return res.status(400).json({
+        message:
+          "An article with this title already exists for this specialist.",
+      });
+    }
+
     const allowedGenders = ["male", "female", "everyone"];
     if (!allowedGenders.includes(targetGender)) {
       return res
@@ -165,7 +177,9 @@ exports.updateArticle = async (req, res) => {
 
     const allowedGenders = ["male", "female", "everyone"];
     if (targetGender && !allowedGenders.includes(targetGender)) {
-      return res.status(400).json({ message: "Invalid target gender provided" });
+      return res
+        .status(400)
+        .json({ message: "Invalid target gender provided" });
     }
 
     // Update the article fields
@@ -202,7 +216,6 @@ exports.updateArticle = async (req, res) => {
       .json({ message: "Error updating article", error: error.message });
   }
 };
-
 
 // Get all articles
 exports.getAllArticles = async (req, res) => {
