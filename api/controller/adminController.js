@@ -101,7 +101,6 @@ Congratulations! Your account has been approved and you can now log in to Armstr
   }
 };
 
-// Reject a specialist
 // Reject a specialist with a reason
 exports.rejectSpecialist = async (req, res) => {
   const { specialistId } = req.params;
@@ -123,7 +122,9 @@ exports.rejectSpecialist = async (req, res) => {
         .json({ success: false, message: "Specialist not found" });
     }
 
-    const messageText = `Hi ${specialist.firstName}, unfortunately, your registration was not approved. Reason: ${
+    const messageText = `Hi ${
+      specialist.firstName
+    }, unfortunately, your registration was not approved. Reason: ${
       reason || "No reason specified"
     }. Please contact us if you believe this is an error.`;
 
@@ -131,7 +132,10 @@ exports.rejectSpecialist = async (req, res) => {
       to: specialist.email,
       subject: "Your Specialist Account was Rejected",
       text: messageText,
-      html: accountRejectedEmail(specialist.firstName, reason || "No reason specified"),
+      html: accountRejectedEmail(
+        specialist.firstName,
+        reason || "No reason specified"
+      ),
     });
 
     res.status(200).json({
@@ -144,7 +148,6 @@ exports.rejectSpecialist = async (req, res) => {
   }
 };
 
-
 // Delete a specialist
 exports.deleteSpecialist = async (req, res) => {
   const { specialistId } = req.params;
@@ -155,7 +158,7 @@ exports.deleteSpecialist = async (req, res) => {
       {
         approvalStatus: "deleted",
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true };
 
     if (!specialist) {
       return res

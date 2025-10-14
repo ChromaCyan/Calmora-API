@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
     phoneNumber: { type: String, required: true },
     gender: {type: String, required: true, enum:['male', 'female']}, 
     userType: { type: String, required: true, enum: ['patient', 'specialist', 'admin'] },
+    rejectionReason: { type: String, default: null },
   },
   { timestamps: true, discriminatorKey: 'userType' }
 );
