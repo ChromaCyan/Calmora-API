@@ -101,35 +101,6 @@ Congratulations! Your account has been approved and you can now log in to Armstr
   }
 };
 
-// Reject a specialist
-exports.rejectSpecialist = async (req, res) => {
-  const { specialistId } = req.params;
-  try {
-    const specialist = await Specialist.findByIdAndUpdate(
-      specialistId,
-      { approvalStatus: "rejected" },
-      { new: true, runValidators: true }
-    );
-
-    if (!specialist) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Specialist not found" });
-    }
-
-    await sendMail({
-      to: specialist.email,
-      subject: "Your Specialist Account is Rejected",
-      text: `Hi ${specialist.firstName}, Unfortunately, your registration was not approved. Please contact us if you believe this is an error.`,
-      html: accountRejectedEmail(specialist.firstName),
-    });
-
-    res.status(200).json({ success: true, data: specialist });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // Reject a specialist with a reason
 exports.rejectSpecialist = async (req, res) => {
   const { specialistId } = req.params;
