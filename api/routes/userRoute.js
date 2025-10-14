@@ -21,7 +21,7 @@ router.get('/admin/specialists/pending', verifyToken, isAdmin, adminController.g
 router.get('/admin/specialists/:specialistId', verifyToken, isAdmin, adminController.getSpecialistById);
 router.put('/admin/specialists/:specialistId/approve', verifyToken, isAdmin, adminController.approveSpecialist);
 router.put('/admin/specialists/:specialistId/reject', verifyToken, isAdmin, adminController.rejectSpecialist);
-router.delete('/admin/specialists/:specialistId', verifyToken, isAdmin, adminController.deleteSpecialist);
+router.put('/admin/specialists/:specialistId', verifyToken, isAdmin, adminController.deleteSpecialist);
 router.get('/admin/articles/pending', verifyToken, isAdmin, adminController.getPendingArticles);
 router.get('/admin/articles/approved/:articleId', verifyToken, isAdmin, adminController.getApprovedArticleById);
 router.put('/admin/articles/:articleId/approve', verifyToken, isAdmin, adminController.approveArticle);

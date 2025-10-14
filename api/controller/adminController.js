@@ -101,6 +101,7 @@ Congratulations! Your account has been approved and you can now log in to Armstr
   }
 };
 
+// Reject a specialist
 // Reject a specialist with a reason
 exports.rejectSpecialist = async (req, res) => {
   const { specialistId } = req.params;
@@ -137,6 +138,47 @@ exports.rejectSpecialist = async (req, res) => {
       success: true,
       message: "Specialist rejected and notified.",
       data: specialist,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// Delete a specialist
+exports.deleteSpecialist = async (req, res) => {
+  const { specialistId } = req.params;
+
+  try {
+    const specialist = await Specialist.findByIdAndUpdate(specialistId);
+    specialistId,
+      {
+        approvalStatus: "deleted",
+      },
+      { new: true, runValidators: true }
+
+    if (!specialist) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Specialist not found" });
+    }
+
+    // Send account deletion email
+    await sendMail({
+      to: specialist.email,
+      subject: "Your Specialist Account Has Been Deleted",
+      text: `Hi ${specialist.firstName},
+
+Your specialist account has been permanently removed from Calmora by the admin team. 
+If you believe this was a mistake, please contact support.
+
+- Calmora Team`,
+      html: accountDeletedEmail(specialist.firstName),
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Specialist deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
