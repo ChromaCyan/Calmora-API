@@ -77,16 +77,39 @@ exports.addTimeSlot = async (req, res) => {
   try {
     const { specialistId, dayOfWeek, startTime, endTime } = req.body;
 
-    const isOverlap = await TimeSlot.exists({
+    const parseTimeToMinutes = (timeStr) => {
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier.toLowerCase() === "pm" && hours !== 12) hours += 12;
+      if (modifier.toLowerCase() === "am" && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    };
+
+    const start = parseTimeToMinutes(startTime);
+    const end = parseTimeToMinutes(endTime);
+
+    if (end <= start) {
+      return res.status(400).json({
+        success: false,
+        message: "End time must be later than start time.",
+      });
+    }
+
+    const existingSlots = await TimeSlot.find({
       specialist: specialistId,
-      dayOfWeek: dayOfWeek,
-      $or: [{ startTime: { $lt: endTime }, endTime: { $gt: startTime } }],
+      dayOfWeek,
+    });
+
+    const isOverlap = existingSlots.some((slot) => {
+      const s = parseTimeToMinutes(slot.startTime);
+      const e = parseTimeToMinutes(slot.endTime);
+      return start < e && end > s; 
     });
 
     if (isOverlap) {
       return res.status(400).json({
         success: false,
-        message: "Time slot overlaps with existing slot",
+        message: "Time slot overlaps with existing slot.",
       });
     }
 
@@ -99,6 +122,7 @@ exports.addTimeSlot = async (req, res) => {
 
     res.status(201).json({ success: true, data: newSlot });
   } catch (error) {
+    console.error("Error adding time slot:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -117,21 +141,38 @@ exports.updateTimeSlot = async (req, res) => {
       });
     }
 
-    const isOverlap = await TimeSlot.exists({
+    const parseTimeToMinutes = (timeStr) => {
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier.toLowerCase() === "pm" && hours !== 12) hours += 12;
+      if (modifier.toLowerCase() === "am" && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    };
+
+    const newStartTime = startTime || slot.startTime;
+    const newEndTime = endTime || slot.endTime;
+    const newDay = dayOfWeek || slot.dayOfWeek;
+
+    const start = parseTimeToMinutes(newStartTime);
+    const end = parseTimeToMinutes(newEndTime);
+
+    if (end <= start) {
+      return res.status(400).json({
+        success: false,
+        message: "End time must be later than start time.",
+      });
+    }
+
+    const existingSlots = await TimeSlot.find({
       specialist: slot.specialist,
-      $or: [
-        {
-          dayOfWeek: dayOfWeek || slot.dayOfWeek,
-          startTime: { $lt: endTime },
-          endTime: { $gt: startTime },
-        },
-        {
-          _id: { $ne: slotId },
-          dayOfWeek: dayOfWeek || slot.dayOfWeek,
-          startTime: { $lt: endTime },
-          endTime: { $gt: startTime },
-        },
-      ],
+      dayOfWeek: newDay,
+      _id: { $ne: slotId }, 
+    });
+
+    const isOverlap = existingSlots.some((s) => {
+      const sStart = parseTimeToMinutes(s.startTime);
+      const sEnd = parseTimeToMinutes(s.endTime);
+      return start < sEnd && end > sStart;
     });
 
     if (isOverlap) {
@@ -141,14 +182,15 @@ exports.updateTimeSlot = async (req, res) => {
       });
     }
 
-    slot.startTime = startTime || slot.startTime;
-    slot.endTime = endTime || slot.endTime;
-    slot.dayOfWeek = dayOfWeek || slot.dayOfWeek;
-
+    // Update slot safely
+    slot.startTime = newStartTime;
+    slot.endTime = newEndTime;
+    slot.dayOfWeek = newDay;
     await slot.save();
 
     res.status(200).json({ success: true, data: slot });
   } catch (error) {
+    console.error("Error updating slot:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
