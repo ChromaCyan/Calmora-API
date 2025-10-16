@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { v4: uuidv4 } = require("uuid");
-
+const GeminiChat = require('../model/geminiModel'); 
 // This fucking part is broken so ill prolly temporarily
 // leave the API Key here while i look for fix since it can't read the .env file for some reason on this controller alone.
 
@@ -9,21 +9,42 @@ const { v4: uuidv4 } = require("uuid");
 //const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const genAI = new GoogleGenerativeAI("AIzaSyCIXMpsEUZBeIuuB_Pl2dDJozJlHzuk7nk");
-const ELEVEN_API_KEY = "sk_f0d2df505095cd0f357b6e6e2fd51b41dd7f424ca9c73aba";
+//const ELEVEN_API_KEY = "sk_f0d2df505095cd0f357b6e6e2fd51b41dd7f424ca9c73aba"; // Old Key
+const ELEVEN_API_KEY = "sk_a3a8f784947a8fada59fb54ed3585a438393985c48a91f5f";
 
 const ttsCache = {};
 
 
 exports.askGemini = async (req, res) => {
-  const { message, withVoice } = req.body;
+  const { message, withVoice, chatId, userId } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: "Message is required" });
   }
 
   try {
-    // --- Gemini ---
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    let chat;
+    if (chatId) {
+      chat = await GeminiChat.findById(chatId);
+    } else {
+      chat = await GeminiChat.findOne({ user: userId });
+      if (!chat) {
+        chat = new GeminiChat({
+          user: userId,
+          participants: [userId],
+          isCalmoraChat: true,
+          messages: [],
+        });
+        await chat.save();
+      }
+    }
+
+    const recentMessages = chat.messages.slice(-3).map((msg) => ({
+      role: msg.sender === "user" ? "user" : "model",
+      parts: [{ text: msg.content }],
+    }));
 
     const systemPrompt = {
       role: "user",
@@ -34,28 +55,29 @@ You are not a licensed therapist. Be empathetic, kind, and suggest general menta
 You can diagnose, give treatment advice but be sure to inform the user that it's still better to seek professional help through our app Calmora.
 Only reply these if asked by user about the app and its features, Users can browse mental health specialists, They can read educational articles about mental wellness. Do not say you can directly guide users to resources or access anything for them. Otherwise don't bring any of these up when not asked.
 Respond in a friendly, clear tone, and respect user privacy.
-Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit your response to ${withVoice ? 'max 250 characters' : 'any length'}. Respond in a friendly, clear tone and stay on topic about mental wellbeing.`,
+Do not go out of topic outside of mental health, always keep them in topic about their mental wellbeing and what they feel. Limit your response to ${
+            withVoice ? "max 250 characters" : "any length"
+          }. Respond in a friendly, clear tone and stay on topic about mental wellbeing.`,
         },
       ],
     };
 
-    const userPrompt = {
-      role: "user",
-      parts: [{ text: message }],
-    };
+    const userPrompt = { role: "user", parts: [{ text: message }] };
 
     const result = await model.generateContent({
-      contents: [systemPrompt, userPrompt],
+      contents: [systemPrompt, ...recentMessages, userPrompt],
     });
 
     const reply = result.response.text();
 
-     let id = null;
+    chat.messages.push({ sender: "user", content: message });
+    chat.messages.push({ sender: "ai", content: reply });
+    await chat.save();
 
+    let id = null;
     if (withVoice) {
       id = uuidv4();
-
-    (async () => {
+      (async () => {
         try {
           const voiceId = "LcfcDJNUP1GQjkzn1xUU";
           const elevenUrl = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
@@ -73,7 +95,6 @@ Do not go out of topic outside of mental health, always keep them in topic about
 
           const buffer = Buffer.from(await audioResp.arrayBuffer());
           ttsCache[id] = buffer.toString("base64");
-
           setTimeout(() => delete ttsCache[id], 5 * 60 * 1000);
         } catch (err) {
           console.error("Async TTS Error:", err);
@@ -81,18 +102,41 @@ Do not go out of topic outside of mental health, always keep them in topic about
       })();
     }
 
-    // Respond immediately with text + optional TTS ID
-    res.json({ reply, ttsPending: !!withVoice, id });
-
+    res.json({
+      reply,
+      chatId: chat._id,
+      ttsPending: !!withVoice,
+      id,
+    });
   } catch (err) {
     console.error("Gemini Error:", err.message);
     res.status(500).json({ error: "AI Error: Unable to respond right now." });
   }
-};
+}
 
 exports.fetchAudio = (req, res) => {
   const { id } = req.query;
   if (!id || !ttsCache[id]) return res.status(404).json({ error: "Audio not ready" });
 
   res.json({ audioBase64: ttsCache[id] });
+};
+
+exports.getChatHistory = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const chat = await GeminiChat.findOne({ user: userId }).sort({ createdAt: -1 });
+
+    if (!chat) {
+      return res.status(404).json({ message: "No chat history found" });
+    }
+
+    res.json({
+      chatId: chat._id,
+      messages: chat.messages, 
+    });
+  } catch (err) {
+    console.error("Error fetching chat history:", err);
+    res.status(500).json({ error: "Failed to load chat history" });
+  }
 };
