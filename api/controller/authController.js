@@ -371,6 +371,7 @@ exports.getSpecialistList = async (req, res) => {
   try {
     const specialists = await Specialist.find(
       { approvalStatus: "approved" },
+      { availability: "Available"},
       "-password"
     );
     res.status(200).json({ success: true, data: specialists });
