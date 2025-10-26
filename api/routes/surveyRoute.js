@@ -18,4 +18,7 @@ router.get("/results/:patientId", verifyToken, isPatient,surveyController.getLat
 // Get articles based on survey results
 router.get("/:id/recommended-articles", verifyToken, isPatient, surveyController.getRecommendedArticles);
 
+// Skip Survey
+router.put("/:id/survey-completed", verifyToken, isPatient, surveyController.markSurveyCompleted);
+
 module.exports = router;

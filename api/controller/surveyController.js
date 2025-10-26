@@ -68,6 +68,18 @@ exports.submitSurveyResponse = async (req, res) => {
   }
 };
 
+// Skip Survey
+exports.markSurveyCompleted = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Patient.findByIdAndUpdate(id, { surveyCompleted: true });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 // Get Survey Results for a Patient
 exports.getLatestPatientSurveyResult = async (req, res) => {
   const { patientId } = req.params;
