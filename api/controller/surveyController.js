@@ -1,7 +1,7 @@
 const Survey = require("../model/surveyModel");
 const SurveyResponse = require("../model/surveyResponse");
 const Article = require("../model/articlesModel");
-const Patient = require('../model/patientModel');
+const Patient = require("../model/patientModel");
 
 // Create a new survey
 exports.createSurvey = async (req, res) => {
@@ -76,11 +76,16 @@ exports.getLatestPatientSurveyResult = async (req, res) => {
 
   try {
     const latestResult = await SurveyResponse.findOne({ patient: patientId })
-      .sort({ createdAt: -1 }) 
+      .sort({ createdAt: -1 })
       .populate("surveyId");
 
     if (!latestResult) {
-      return res.status(404).json({ success: false, message: "No survey responses found for this patient." });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "No survey responses found for this patient.",
+        });
     }
 
     res.status(200).json({ success: true, data: latestResult });
@@ -88,7 +93,6 @@ exports.getLatestPatientSurveyResult = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 // Get recommended articles based on the latest survey interpretation
 exports.getRecommendedArticles = async (req, res) => {
@@ -106,14 +110,15 @@ exports.getRecommendedArticles = async (req, res) => {
 
     // Define the mapping of interpretation to article categories
     const categoryMapping = {
-      "Minimal or No Signs of Mental Health Problems": ["growth", "mental wellness", "health", "social"],
-      "Mild Mental Health Concerns": ["coping strategies", "self-care", "health", "relationships"],
-      "Moderate Mental Health Concerns": ["mental wellness", "coping strategies", "self-care", "relationships"],
-      "Severe Mental Health Concerns": ["mental wellness", "coping strategies", "self-care"],
+      "Minimal or No Signs of Mental Health Problems": ["growth"],
+      "Mild Mental Health Concerns": ["self-care", "social"],
+      "Moderate Mental Health Concerns": ["coping strategies", "relationships"],
+      "Severe Mental Health Concerns": ["mental wellness", "health"],
     };
 
     // Get the categories to recommend based on the interpretation
-    const categoriesToRecommend = categoryMapping[latestSurvey.interpretation] || [];
+    const categoriesToRecommend =
+      categoryMapping[latestSurvey.interpretation] || [];
 
     if (categoriesToRecommend.length === 0) {
       return res.status(404).json({ message: "No relevant articles found" });
@@ -129,9 +134,16 @@ exports.getRecommendedArticles = async (req, res) => {
     if (recommendedArticles.length > 0) {
       return res.status(200).json(recommendedArticles);
     } else {
-      return res.status(404).json({ message: "No articles found for the selected categories" });
+      return res
+        .status(404)
+        .json({ message: "No articles found for the selected categories" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Error fetching recommended articles", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Error fetching recommended articles",
+        error: error.message,
+      });
   }
 };
