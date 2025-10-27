@@ -47,4 +47,17 @@ const isAdmin = (req, res, next) => {
     }
 };
 
+const isSpecialistOrPatient = (req, res, next) => {
+  if (!req.user || !req.user.userType) {
+    return res.status(403).json({ message: 'Forbidden! User type not found.' });
+  }
+
+  const userType = req.user.userType();
+  if (userType === 'Specialist' || userType === 'Patient') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Forbidden! You are not allowed to perform this action.' });
+  }
+};
+
 module.exports = { verifyToken, isPatient, isSpecialist, isAdmin };

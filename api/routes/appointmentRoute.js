@@ -4,6 +4,20 @@ const appointmentController = require("../controller/appointmentController");
 const availabilityController = require("../controller/availabilityController");
 const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMiddleware");
 
+// Allow either Specialist or Patient to access
+const isSpecialistOrPatient = (req, res, next) => {
+  if (!req.user || !req.user.userType) {
+    return res.status(403).json({ message: 'Forbidden! User type not found.' });
+  }
+
+  const userType = req.user.userType();
+  if (userType === 'Specialist' || userType === 'Patient') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Forbidden! You are not allowed to perform this action.' });
+  }
+};
+
 ////////////////////////////////////////////////////////////
 // Appointment Routes
 
@@ -26,13 +40,13 @@ router.post("/:appointmentId/complete", verifyToken, isSpecialist, appointmentCo
 router.get("/appointments/completed/:userId", appointmentController.getCompletedAppointments);
 
 // Cancel Appointment (Both Users)
-router.put("/:appointmentId/cancel", verifyToken, isSpecialist, isPatient, appointmentController.cancelAppointment);
+router.put("/:appointmentId/cancel", verifyToken, isSpecialistOrPatient, appointmentController.cancelAppointment);
 
 // Reschedule Appointment (Both Users)
-router.put("/:appointmentId/reschedule", verifyToken, isSpecialist, isPatient, appointmentController.rescheduleAppointment);
+router.put("/:appointmentId/reschedule", verifyToken, isSpecialistOrPatient, appointmentController.rescheduleAppointment);
 
 // Get weekly completed appointments (Specialist)
-router.get("/completed/weekly/:specialistId",verifyToken,appointmentController.getWeeklyCompletedAppointments);
+router.get("/completed/weekly/:specialistId", verifyToken, appointmentController.getWeeklyCompletedAppointments);
 
 ////////////////////////////////////////////////////////////
 // Availability Routes
