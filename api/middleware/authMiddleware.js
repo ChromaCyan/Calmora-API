@@ -61,4 +61,12 @@ const isSpecialistOrPatient = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken, isPatient, isSpecialist, isAdmin };
+module.exports = { 
+  verifyToken, 
+  isPatient, 
+  isSpecialist, 
+  isAdmin, 
+  isSpecialistOrPatient  
+};
+
+

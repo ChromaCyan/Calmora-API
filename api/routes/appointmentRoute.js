@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const appointmentController = require("../controller/appointmentController");
 const availabilityController = require("../controller/availabilityController");
-const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMiddleware");
+const { verifyToken, isPatient, isSpecialist, isSpecialistOrPatient } = require("../middleware/authMiddleware");
 
 ////////////////////////////////////////////////////////////
 // Appointment Routes
