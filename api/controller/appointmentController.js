@@ -3,6 +3,7 @@ const User = require("../model/userModel");
 const { io } = require("../socket/socket");
 const { createNotification } = require("./notificationController");
 const Availability = require("../model/availabilityModel");
+const TimeSlot = require("../model/timeslotModel");
 const axios = require("axios");
 const dotenv = require("dotenv");
 
@@ -350,6 +351,134 @@ exports.getWeeklyCompletedAppointments = async (req, res) => {
     res.status(200).json(formattedData);
   } catch (error) {
     console.error("Error fetching daily completed appointments:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Cancel an appointment (for both Patient and Specialist)
+exports.cancelAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { cancelledBy, reason } = req.body; 
+    // cancelledBy: "patient" or "specialist"
+
+    const appointment = await Appointment.findById(appointmentId)
+      .populate("patient specialist", "firstName lastName");
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (["completed", "declined", "cancelled"].includes(appointment.status)) {
+      return res
+        .status(400)
+        .json({ error: "Cannot cancel this appointment anymore." });
+    }
+
+    // Update appointment status
+    appointment.status = "cancelled";
+    appointment.cancelledBy = cancelledBy;
+    appointment.cancelReason = reason || "No reason provided";
+    await appointment.save();
+
+    // Identify who should be notified
+    const patientId = appointment.patient._id;
+    const specialistId = appointment.specialist._id;
+
+    const notifyUserId = cancelledBy === "patient" ? specialistId : patientId;
+    const cancelledName =
+      cancelledBy === "patient"
+        ? `${appointment.patient.firstName}`
+        : `${appointment.specialist.firstName}`;
+
+    // Send real-time notification
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: notifyUserId,
+      type: "appointment",
+      message: `Your appointment was cancelled by ${cancelledName}.`,
+      extra: { appointmentId: appointment._id },
+    });
+
+    res.status(200).json({
+      message: "Appointment cancelled successfully.",
+      appointment,
+    });
+  } catch (error) {
+    console.error("Error cancelling appointment:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Reschedule an appointment (for both Patient and Specialist)
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { newSlotId, newDate, requestedBy } = req.body; 
+
+    const appointment = await Appointment.findById(appointmentId)
+      .populate("patient specialist timeSlot");
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    if (["completed", "declined", "cancelled"].includes(appointment.status)) {
+      return res
+        .status(400)
+        .json({ error: "Cannot reschedule this appointment anymore." });
+    }
+
+    const newSlot = await TimeSlot.findById(newSlotId);
+    if (!newSlot) {
+      return res.status(404).json({ error: "New time slot not found" });
+    }
+
+    // Check for existing booking in that slot & date
+    const conflict = await Appointment.findOne({
+      timeSlot: newSlot._id,
+      appointmentDate: new Date(newDate),
+      status: { $nin: ["completed", "declined", "cancelled"] },
+    });
+
+    if (conflict) {
+      return res
+        .status(400)
+        .json({ error: "The new time slot is already booked for that date." });
+    }
+
+    // Update appointment
+    appointment.timeSlot = newSlot._id;
+    appointment.appointmentDate = new Date(newDate);
+    appointment.status = "rescheduled";
+    appointment.rescheduledBy = requestedBy;
+    await appointment.save();
+
+    const patientId = appointment.patient._id;
+    const specialistId = appointment.specialist._id;
+
+    // Send notifications
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: patientId,
+      type: "appointment",
+      message: `Your appointment has been rescheduled to ${new Date(
+        newDate
+      ).toLocaleString()}.`,
+      extra: { appointmentId: appointment._id },
+    });
+
+    await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
+      userId: specialistId,
+      type: "appointment",
+      message: `Appointment rescheduled by ${requestedBy}.`,
+      extra: { appointmentId: appointment._id },
+    });
+
+    res.status(200).json({
+      message: "Appointment rescheduled successfully.",
+      appointment,
+    });
+  } catch (error) {
+    console.error("Error rescheduling appointment:", error);
     res.status(500).json({ error: error.message });
   }
 };

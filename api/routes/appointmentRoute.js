@@ -25,6 +25,12 @@ router.post("/:appointmentId/complete", verifyToken, isSpecialist, appointmentCo
 // Get all list of completed appointment (Both Users)
 router.get("/appointments/completed/:userId", appointmentController.getCompletedAppointments);
 
+// Cancel Appointment (Both Users)
+router.put("/:appointmentId/cancel", verifyToken, isSpecialist, isPatient, appointmentController.cancelAppointment);
+
+// Reschedule Appointment (Both Users)
+router.put("/:appointmentId/reschedule", verifyToken, isSpecialist, isPatient, appointmentController.rescheduleAppointment);
+
 // Get weekly completed appointments (Specialist)
 router.get("/completed/weekly/:specialistId",verifyToken,appointmentController.getWeeklyCompletedAppointments);
 
