@@ -4,20 +4,6 @@ const appointmentController = require("../controller/appointmentController");
 const availabilityController = require("../controller/availabilityController");
 const { verifyToken, isPatient, isSpecialist } = require("../middleware/authMiddleware");
 
-// Allow either Specialist or Patient to access
-const isSpecialistOrPatient = (req, res, next) => {
-  if (!req.user || !req.user.userType) {
-    return res.status(403).json({ message: 'Forbidden! User type not found.' });
-  }
-
-  const userType = req.user.userType();
-  if (userType === 'Specialist' || userType === 'Patient') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Forbidden! You are not allowed to perform this action.' });
-  }
-};
-
 ////////////////////////////////////////////////////////////
 // Appointment Routes
 

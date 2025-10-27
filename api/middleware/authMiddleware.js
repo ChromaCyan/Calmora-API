@@ -52,8 +52,9 @@ const isSpecialistOrPatient = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden! User type not found.' });
   }
 
-  const userType = req.user.userType();
-  if (userType === 'Specialist' || userType === 'Patient') {
+  const userType = req.user.userType.toLowerCase();
+
+  if (userType === 'specialist' || userType === 'patient') {
     next();
   } else {
     res.status(403).json({ message: 'Forbidden! You are not allowed to perform this action.' });
