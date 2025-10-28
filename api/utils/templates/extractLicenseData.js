@@ -20,25 +20,37 @@ async function extractLicenseData(imageUrl) {
       return null;
     }
 
-    const text = parsedResults.ParsedText.replace(/\s+/g, " ").toUpperCase();
-    console.log("📜 OCR Extracted Text:", text);
+    const text = parsedResults.ParsedText.replace(/\r\n/g, "\n") // normalize line breaks
+      .replace(/\n+/g, "\n") // collapse multiple newlines
+      .replace(/\s+/g, " ") // collapse multiple spaces
+      .toUpperCase();
 
-    // Extract using more tolerant regex
-    const lastName = text.match(/LAST\s*NAME[:\s]+([A-Z\s]+)/)?.[1]?.trim() || null;
-    const firstName = text.match(/FIRST\s*NAME[:\s]+([A-Z\s]+)/)?.[1]?.trim() || null;
-    const middleName = text.match(/MIDDLE\s*NAME[:\s]+([A-Z\s]+)/)?.[1]?.trim() || null;
+    // Extract names
+    const lastName =
+      text.match(/LAST NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
+    const firstName =
+      text.match(/FIRST NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
+    const middleName =
+      text.match(/MIDDLE NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
 
-    // Find the first standalone number sequence (license no.)
-    const licenseNumber = text.match(/\b\d{5,}\b/)?.[0] || null;
+    // Extract license number
+    const licenseNumber =
+      text.match(/REGISTRATION\s*NO\s*[:\s]*([A-Z0-9]+)/)?.[1]?.trim() || null;
 
-    const profession = text.match(
-      /PSYCHOLOGIST|PSYCHOMETRICIAN|PHYSICIAN|COUNSELOR|THERAPIST|MEDICAL\s*TECHNOLOGIST|OCCUPATIONAL\s*THERAPY\s*TECHNICIAN/i
-    )?.[0] || null;
+    // Extract profession (line above QR code)
+    const profession =
+      text.match(
+        /MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i
+      )?.[0] || null;
 
-    const expiry = text.match(/VALID\s*UNTIL[:\s]+([0-9/]+)/)?.[1]?.trim() || null;
+    // Extract expiry date
+    const expiry =
+      text.match(/VALID UNTIL\s*[:\s]*([0-9/]+)/)?.[1]?.trim() || null;
 
-    // Combine names gracefully
-    const extractedName = [firstName, middleName, lastName].filter(Boolean).join(" ");
+    // Combine names
+    const extractedName = [firstName, middleName, lastName]
+      .filter(Boolean)
+      .join(" ");
 
     return {
       extractedName: extractedName || null,
