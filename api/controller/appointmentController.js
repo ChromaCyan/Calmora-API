@@ -395,7 +395,7 @@ exports.cancelAppointment = async (req, res) => {
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
       userId: notifyUserId,
       type: "appointment",
-      message: `Your appointment was cancelled by ${cancelledName}.`,
+      message: `Appointment was cancelled by ${cancelledName}.`,
       extra: { appointmentId: appointment._id },
     });
 
@@ -460,7 +460,7 @@ exports.rescheduleAppointment = async (req, res) => {
     await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
       userId: patientId,
       type: "appointment",
-      message: `Your appointment has been rescheduled to ${new Date(
+      message: `Appointment has been rescheduled to ${new Date(
         newDate
       ).toLocaleString()}.`,
       extra: { appointmentId: appointment._id },

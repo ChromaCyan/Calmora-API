@@ -17,6 +17,7 @@ const accountPendingEmail = require("../utils/templates/accountPending");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
 const otps = {};
+const pendingRegistrations = {};
 
 const generateOTP = () => crypto.randomInt(100000, 999999).toString();
 
@@ -64,8 +65,7 @@ exports.verifyOTP = async (req, res) => {
 
 // Register User
 exports.createUser = async (req, res) => {
-  const { firstName, lastName, email, password, gender, ...otherDetails } =
-    req.body;
+  const { firstName, lastName, email, password, gender, otp, ...otherDetails } = req.body;
 
   try {
     const lowerCaseEmail = email.toLowerCase();
@@ -74,6 +74,25 @@ exports.createUser = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
+
+    // Step 1: Check OTP before registration
+    const storedOTP = await OTP.findOne({ email: lowerCaseEmail });
+    if (!storedOTP) {
+      return res.status(404).json({ message: "Please verify your email first (no OTP found)" });
+    }
+
+    if (storedOTP.expiresAt < new Date()) {
+      await OTP.deleteOne({ email: lowerCaseEmail });
+      return res.status(400).json({ message: "OTP expired, please request a new one" });
+    }
+
+    if (storedOTP.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // If valid → mark verified and continue registration
+    storedOTP.verified = true;
+    await storedOTP.save();
 
     let newUser;
 
@@ -105,7 +124,7 @@ You will receive another email once your account has been approved or rejected.
         html: accountPendingEmail(newUser.firstName),
       });
 
-      // Notify all admins
+      // Notify all admins via socket
       const admins = await User.find({ userType: "Admin" });
       for (const admin of admins) {
         await axios.post(`${process.env.SOCKET_SERVER_URL}/emit-notification`, {
@@ -137,23 +156,17 @@ You will receive another email once your account has been approved or rejected.
 
     await newUser.save();
 
-    // OTP verification for patients
-    const otp = generateOTP();
-    otps[lowerCaseEmail] = { otp, expires: Date.now() + 300000 };
-    await sendMail({
-      to: lowerCaseEmail,
-      subject: "OTP Verification Code",
-      text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
-    });
-
     const token = jwt.sign(
       { id: newUser._id, userType: newUser.userType },
       JWT_SECRET,
       { expiresIn: "3h" }
     );
 
+    // Once successfully created → mark emailVerified = true
+    await User.updateOne({ email: lowerCaseEmail }, { $set: { emailVerified: true } });
+
     return res.status(201).json({
-      message: "Patient created successfully, OTP sent",
+      message: "Patient created successfully",
       token,
       userId: newUser._id,
     });
@@ -161,6 +174,40 @@ You will receive another email once your account has been approved or rejected.
     res.status(500).json({ message: error.message });
   }
 };
+
+
+// Send verification OTP
+exports.sendVerificationOTP = async (req, res) => {
+  const { email } = req.body;
+  const lowerCaseEmail = email.toLowerCase();
+
+  try {
+    const existingUser = await User.findOne({ email: lowerCaseEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await OTP.findOneAndUpdate(
+      { email: lowerCaseEmail },
+      { otp, expiresAt, verified: false },
+      { upsert: true, new: true }
+    );
+
+    await sendMail({
+      to: lowerCaseEmail,
+      subject: "Verify Your Calmora Email",
+      html: otpEmail(firstName || "there", otp),
+    });
+
+    res.status(200).json({ message: "Verification OTP sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 // Login User
 exports.loginUser = async (req, res) => {

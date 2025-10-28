@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     gender: {type: String, required: true, enum:['male', 'female']}, 
     userType: { type: String, required: true, enum: ['patient', 'specialist', 'admin'] },
     rejectionReason: { type: String, default: null },
+    emailVerified: { type: Boolean, default: false },
   },
   { timestamps: true, discriminatorKey: 'userType' }
 );

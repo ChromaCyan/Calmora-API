@@ -6,6 +6,7 @@ const { verifyToken, isPatient, isSpecialist, isAdmin } = require('../middleware
 
 // Public Routes
 router.post('/register', authController.createUser);
+router.post('/send-verification-otp', authController.sendVerificationOTP); 
 router.post('/login', authController.loginUser);
 router.post('/verify-otp', authController.verifyOTP);
 
