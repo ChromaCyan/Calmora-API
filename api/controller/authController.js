@@ -117,9 +117,8 @@ exports.createUser = async (req, res) => {
 
       await newUser.save();
 
-      if (req.body.licenseImageUrl) {
-        const ocrData = await extractLicenseData(req.body.licenseNumber);
-
+      if (req.body.licenseNumber) {
+        const ocrData = await extractLicenseData(req.body.licenseNumber); // URL stored in licenseNumber
         if (ocrData) {
           await Specialist.findByIdAndUpdate(newUser._id, {
             licenseVerificationData: ocrData,
