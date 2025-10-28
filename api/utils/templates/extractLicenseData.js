@@ -11,13 +11,13 @@ async function extractLicenseData(imageUrl) {
 
     const response = await axios.post(
       "https://api.ocr.space/parse/image",
-      {},
+      new URLSearchParams({
+        apikey: apiKey,
+        url: imageUrl,
+        language: "eng",
+      }),
       {
-        params: {
-          apikey: apiKey,
-          url: imageUrl,
-          language: "eng",
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }
     );
 
