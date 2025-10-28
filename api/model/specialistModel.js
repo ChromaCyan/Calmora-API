@@ -3,6 +3,7 @@ const User = require("./userModel");
 
 const specialistSchema = new mongoose.Schema(
   {
+    dateOfBirth: { type: Date, required: true },
     specialization: { type: String, required: true },
     licenseNumber: { type: String, required: true },
     bio: { type: String, default: "No bio available." },
