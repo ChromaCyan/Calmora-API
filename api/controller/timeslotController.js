@@ -247,7 +247,7 @@ exports.bookTimeSlot = async (req, res) => {
     const existingAppointment = await Appointment.findOne({
       timeSlot: slot._id,
       appointmentDate: new Date(appointmentDate),
-      status: { $nin: ["completed", "declined"] },
+      status: { $nin: ["completed", "declined", "cancelled"] },
     });
 
     if (existingAppointment) {
