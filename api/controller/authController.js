@@ -65,7 +65,8 @@ exports.verifyOTP = async (req, res) => {
 
 // Register User
 exports.createUser = async (req, res) => {
-  const { firstName, lastName, email, password, gender, otp, ...otherDetails } = req.body;
+  const { firstName, lastName, email, password, gender, otp, ...otherDetails } =
+    req.body;
 
   try {
     const lowerCaseEmail = email.toLowerCase();
@@ -78,12 +79,16 @@ exports.createUser = async (req, res) => {
     // Step 1: Check OTP before registration
     const storedOTP = await OTP.findOne({ email: lowerCaseEmail });
     if (!storedOTP) {
-      return res.status(404).json({ message: "Please verify your email first (no OTP found)" });
+      return res
+        .status(404)
+        .json({ message: "Please verify your email first (no OTP found)" });
     }
 
     if (storedOTP.expiresAt < new Date()) {
       await OTP.deleteOne({ email: lowerCaseEmail });
-      return res.status(400).json({ message: "OTP expired, please request a new one" });
+      return res
+        .status(400)
+        .json({ message: "OTP expired, please request a new one" });
     }
 
     if (storedOTP.otp !== otp) {
@@ -163,7 +168,10 @@ You will receive another email once your account has been approved or rejected.
     );
 
     // Once successfully created → mark emailVerified = true
-    await User.updateOne({ email: lowerCaseEmail }, { $set: { emailVerified: true } });
+    await User.updateOne(
+      { email: lowerCaseEmail },
+      { $set: { emailVerified: true } }
+    );
 
     return res.status(201).json({
       message: "Patient created successfully",
@@ -174,7 +182,6 @@ You will receive another email once your account has been approved or rejected.
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Send verification OTP
 exports.sendVerificationOTP = async (req, res) => {
@@ -199,7 +206,7 @@ exports.sendVerificationOTP = async (req, res) => {
     await sendMail({
       to: lowerCaseEmail,
       subject: "Verify Your Calmora Email",
-      html: otpEmail(firstName || "there", otp),
+      html: otpEmail("User", otp),
     });
 
     res.status(200).json({ message: "Verification OTP sent to your email" });
@@ -207,7 +214,6 @@ exports.sendVerificationOTP = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Login User
 exports.loginUser = async (req, res) => {
@@ -417,7 +423,7 @@ exports.editProfile = async (req, res) => {
 exports.getSpecialistList = async (req, res) => {
   try {
     const specialists = await Specialist.find(
-      { approvalStatus: "approved", availability: "Available"},
+      { approvalStatus: "approved", availability: "Available" },
       "-password"
     );
     res.status(200).json({ success: true, data: specialists });
