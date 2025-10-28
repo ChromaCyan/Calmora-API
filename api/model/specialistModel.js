@@ -22,6 +22,13 @@ const specialistSchema = new mongoose.Schema(
       default: "pending",
     },
     rejectionReason: { type: String, default: null },
+    licenseVerificationData: {
+      extractedName: { type: String, default: null },
+      extractedLicenseNumber: { type: String, default: null },
+      extractedProfession: { type: String, default: null },
+      extractedExpiry: { type: String, default: null },
+      confidenceScore: { type: Number, default: null },
+    },
   },
   { timestamps: true }
 );

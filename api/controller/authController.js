@@ -104,6 +104,7 @@ exports.createUser = async (req, res) => {
 
     // Specialist registration
     if (req.body.specialization) {
+      const extractLicenseData = require("../utils/templates/extractLicenseData");
       newUser = new Specialist({
         firstName,
         lastName,
@@ -115,6 +116,14 @@ exports.createUser = async (req, res) => {
       });
 
       await newUser.save();
+
+      const ocrData = await extractLicenseData(newUser.licenseNumber);
+
+      if (ocrData) {
+        await Specialist.findByIdAndUpdate(newUser._id, {
+          licenseVerificationData: ocrData,
+        });
+      }
 
       // Send "under review" email
       await sendMail({
