@@ -117,12 +117,14 @@ exports.createUser = async (req, res) => {
 
       await newUser.save();
 
-      const ocrData = await extractLicenseData(newUser.licenseNumber);
+      if (req.body.licenseImageUrl) {
+        const ocrData = await extractLicenseData(req.body.licenseImageUrl);
 
-      if (ocrData) {
-        await Specialist.findByIdAndUpdate(newUser._id, {
-          licenseVerificationData: ocrData,
-        });
+        if (ocrData) {
+          await Specialist.findByIdAndUpdate(newUser._id, {
+            licenseVerificationData: ocrData,
+          });
+        }
       }
 
       // Send "under review" email
