@@ -3,7 +3,6 @@ const axios = require("axios");
 async function extractLicenseData(imageUrl) {
   try {
     const apiKey = "K86286414288957";
-
     const response = await axios.post(
       "https://api.ocr.space/parse/image",
       new URLSearchParams({
@@ -20,26 +19,39 @@ async function extractLicenseData(imageUrl) {
       return null;
     }
 
-    const text = parsedResults.ParsedText.replace(/\r\n/g, "\n") // normalize line breaks
-      .replace(/\n+/g, "\n") // collapse multiple newlines
-      .toUpperCase();
+    // Normalize text
+    const lines = parsedResults.ParsedText
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean);
 
-    // Extract last name
-    const lastName = text.match(/LAST NAME\s*[▶>]*\s*([A-Z\s]+)/)?.[1]?.trim() || null;
-    // Extract first name
-    const firstName = text.match(/FIRST NAME\s*[▶>]*\s*([A-Z\s]+)/)?.[1]?.trim() || null;
+    // Filter out irrelevant lines
+    const ignoreWords = ["LAST NAME", "FIRST NAME", "MIDDLE NAME", "REGISTRAT", "REGISTRATION"];
+    const nameLines = lines.filter(line => 
+      !ignoreWords.some(word => line.toUpperCase().includes(word)) &&
+      /^[A-Z\s]+(JR|SR)?$/.test(line.toUpperCase()) // keep only lines that look like names
+    );
+
+    // Deduplicate consecutive duplicates
+    const uniqueNames = [...new Set(nameLines)];
+
+    const extractedName = uniqueNames.join(" ").trim() || null;
+
     // Extract profession
-    const profession = text.match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i)?.[0] || null;
-    // Extract registration number (5+ digits)
-    const licenseNumber = text.match(/REGISTRAT[^\n]*\n.*?(\d{5,})/)?.[1]?.trim() || text.match(/\b\d{5,}\b/)?.[0] || null;
+    const profession = lines.join(" ").match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i)?.[0] || null;
 
-    const extractedName = [firstName, lastName].filter(Boolean).join(" ");
+    // Extract registration number (5+ digits)
+    const licenseNumber =
+      lines.join(" ").match(/REGISTRAT[^\n]*\n.*?(\d{5,})/)?.[1]?.trim() ||
+      lines.join(" ").match(/\b\d{5,}\b/)?.[0] ||
+      null;
 
     return {
-      extractedName: extractedName || null,
+      extractedName,
       extractedLicenseNumber: licenseNumber,
       extractedProfession: profession,
-      extractedExpiry: null, 
+      extractedExpiry: null,
       confidenceScore: parsedResults.FileParseExitCode === 1 ? 0.95 : 0.7,
     };
   } catch (err) {
