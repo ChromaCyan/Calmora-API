@@ -3,7 +3,7 @@ const axios = require("axios");
 
 async function extractLicenseData(imageUrl) {
   try {
-    const apiKey = process.env.OCR_SPACE_API_KEY;
+    const apiKey = "K86286414288957";
 
     if (!apiKey) {
       throw new Error("Missing OCR_SPACE_API_KEY in environment variables");
