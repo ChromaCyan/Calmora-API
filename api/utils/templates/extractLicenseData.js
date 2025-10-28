@@ -2,12 +2,12 @@ const axios = require("axios");
 
 async function extractLicenseData(imageUrl) {
   try {
-    const apikey = "K86286414288957";
+    const apiKey = "K86286414288957";
 
     const response = await axios.post(
       "https://api.ocr.space/parse/image",
       new URLSearchParams({
-        apikey: apikey,
+        apikey: apiKey,
         url: imageUrl,
         language: "eng",
       }),
