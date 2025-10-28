@@ -22,41 +22,24 @@ async function extractLicenseData(imageUrl) {
 
     const text = parsedResults.ParsedText.replace(/\r\n/g, "\n") // normalize line breaks
       .replace(/\n+/g, "\n") // collapse multiple newlines
-      .replace(/\s+/g, " ") // collapse multiple spaces
       .toUpperCase();
 
-    // Extract names
-    const lastName =
-      text.match(/LAST NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
-    const firstName =
-      text.match(/FIRST NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
-    const middleName =
-      text.match(/MIDDLE NAME\s*[:\s]*([A-Z\s]+)/)?.[1]?.trim() || null;
+    // Extract last name
+    const lastName = text.match(/LAST NAME\s*[▶>]*\s*([A-Z\s]+)/)?.[1]?.trim() || null;
+    // Extract first name
+    const firstName = text.match(/FIRST NAME\s*[▶>]*\s*([A-Z\s]+)/)?.[1]?.trim() || null;
+    // Extract profession
+    const profession = text.match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i)?.[0] || null;
+    // Extract registration number (5+ digits)
+    const licenseNumber = text.match(/REGISTRAT[^\n]*\n.*?(\d{5,})/)?.[1]?.trim() || text.match(/\b\d{5,}\b/)?.[0] || null;
 
-    // Extract license number
-    const licenseNumber =
-      text.match(/REGISTRATION\s*NO\s*[:\s]*([A-Z0-9]+)/)?.[1]?.trim() || null;
-
-    // Extract profession (line above QR code)
-    const profession =
-      text.match(
-        /MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i
-      )?.[0] || null;
-
-    // Extract expiry date
-    const expiry =
-      text.match(/VALID UNTIL\s*[:\s]*([0-9/]+)/)?.[1]?.trim() || null;
-
-    // Combine names
-    const extractedName = [firstName, middleName, lastName]
-      .filter(Boolean)
-      .join(" ");
+    const extractedName = [firstName, lastName].filter(Boolean).join(" ");
 
     return {
       extractedName: extractedName || null,
       extractedLicenseNumber: licenseNumber,
       extractedProfession: profession,
-      extractedExpiry: expiry,
+      extractedExpiry: null, 
       confidenceScore: parsedResults.FileParseExitCode === 1 ? 0.95 : 0.7,
     };
   } catch (err) {
