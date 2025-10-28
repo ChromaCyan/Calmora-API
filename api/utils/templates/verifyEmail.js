@@ -17,7 +17,7 @@ const otpEmailTemplate = (firstName, otp) => `
       <div style="margin: 30px 0; font-size: 28px; font-weight: bold; color: #0d6efd;">${otp}</div>
 
       <p style="font-size: 14px; color: #6c757d;">
-        This OTP is valid for 5 minutes. If you did not request a password reset, you can safely ignore this email.
+        This OTP is valid for 5 minutes. If you did not request a an otp, you can safely ignore this email.
       </p>
 
       <p style="margin-top: 30px; font-size: 14px; color: #6c757d;">

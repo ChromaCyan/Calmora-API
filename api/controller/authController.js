@@ -13,7 +13,7 @@ const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
 const otpEmail = require("../utils/templates/otpEmail");
-const verifyEmail = require("../utils/templates/otpEmail");
+const verifyEmail = require("../utils/templates/verifyEmail");
 const accountPendingEmail = require("../utils/templates/accountPending");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
