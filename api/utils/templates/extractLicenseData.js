@@ -25,18 +25,7 @@ async function extractLicenseData(imageUrl) {
     const words = text.split(/[\s\n]+/);
 
     // Words to ignore in names
-    const ignoreWords = ["LAST", "FIRST", "MIDDLE", "NAME", "REGISTRATION", "VALID", "UNTIL", "PROFESSIONAL", "IDENTIFICATION", "CARD", "CERTIFICATION", "SCANNED", "WITH", "CAMSCANNER", "Regulation", "Commisions", "www.prc.gov.ph", "Certification"];
-
-    // Collect name words
-    const nameWords = [];
-    for (let w of words) {
-      if (!ignoreWords.includes(w) && /^[A-Z]+(?:JR|SR)?$/.test(w)) {
-        nameWords.push(w);
-      }
-    }
-
-    // Deduplicate and join
-    const extractedName = [...new Set(nameWords)].join(" ") || null;
+    const ignoreWords = ["LAST", "FIRST", "MIDDLE", "NAME", "REGISTRATION", "VALID", "UNTIL", "IDENTIFICATION", "CARD", "CERTIFICATION", "SCANNED", "WITH", "CAMSCANNER", "Regulation", "Commisions", "www.prc.gov.ph", "Certification"];
 
     // Extract profession
     const professionMatch = text.match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i);
@@ -47,10 +36,8 @@ async function extractLicenseData(imageUrl) {
     const licenseNumber = licenseNumberMatch ? licenseNumberMatch[0] : null;
 
     return {
-      extractedName,
       extractedLicenseNumber: licenseNumber,
       extractedProfession: profession,
-      extractedExpiry: null,
       confidenceScore: parsedResults.FileParseExitCode === 1 ? 0.95 : 0.7,
     };
   } catch (err) {
