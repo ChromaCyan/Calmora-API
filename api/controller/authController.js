@@ -13,6 +13,7 @@ const User = require("../model/userModel");
 const Patient = require("../model/patientModel");
 const Specialist = require("../model/specialistModel");
 const otpEmail = require("../utils/templates/otpEmail");
+const verifyEmail = require("../utils/templates/otpEmail");
 const accountPendingEmail = require("../utils/templates/accountPending");
 
 const JWT_SECRET = process.env.JWT_SECRET || "123_123";
@@ -206,7 +207,7 @@ exports.sendVerificationOTP = async (req, res) => {
     await sendMail({
       to: lowerCaseEmail,
       subject: "Verify Your Calmora Email",
-      html: otpEmail("User", otp),
+      html: verifyEmail("User", otp),
     });
 
     res.status(200).json({ message: "Verification OTP sent to your email" });
