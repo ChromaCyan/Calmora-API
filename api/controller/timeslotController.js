@@ -27,7 +27,7 @@ exports.getAvailableSlots = async (req, res) => {
         $gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
         $lt: new Date(selectedDate.setHours(23, 59, 59, 999)),
       },
-      status: { $nin: ["completed", "declined"] },
+      status: { $nin: ["completed", "declined", "cancelled", "expired"] },
     });
 
     const bookedSlotIds = appointmentsOnDate.map((a) => a.timeSlot.toString());
@@ -214,7 +214,7 @@ exports.bookTimeSlot = async (req, res) => {
     const existingSpecialistAppointment = await Appointment.findOne({
       patient: patientId,
       specialist: slot.specialist._id,
-      status: { $nin: ["completed", "declined"] },
+      status: { $nin: ["completed", "declined", "cancelled", "expired"] },
     });
 
     if (existingSpecialistAppointment) {
@@ -232,7 +232,7 @@ exports.bookTimeSlot = async (req, res) => {
         $gte: new Date(new Date(appointmentDate).setHours(0, 0, 0, 0)),
         $lt: new Date(new Date(appointmentDate).setHours(23, 59, 59, 999)),
       },
-      status: { $nin: ["completed", "declined"] },
+      status: { $nin: ["completed", "declined", "cancelled", "expired"] },
     });
 
     if (conflictingAppointment) {
@@ -247,7 +247,7 @@ exports.bookTimeSlot = async (req, res) => {
     const existingAppointment = await Appointment.findOne({
       timeSlot: slot._id,
       appointmentDate: new Date(appointmentDate),
-      status: { $nin: ["completed", "declined", "cancelled"] },
+      status: { $nin: ["completed", "declined", "cancelled", "expired"] },
     });
 
     if (existingAppointment) {
