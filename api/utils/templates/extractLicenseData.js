@@ -19,33 +19,32 @@ async function extractLicenseData(imageUrl) {
       return null;
     }
 
-    // Normalize text
-    const lines = parsedResults.ParsedText
-      .replace(/\r\n/g, "\n")
-      .split("\n")
-      .map(l => l.trim())
-      .filter(Boolean);
+    let text = parsedResults.ParsedText.replace(/\r\n/g, "\n").toUpperCase();
 
-    // Filter out irrelevant lines
-    const ignoreWords = ["LAST NAME", "FIRST NAME", "MIDDLE NAME", "REGISTRAT", "REGISTRATION"];
-    const nameLines = lines.filter(line => 
-      !ignoreWords.some(word => line.toUpperCase().includes(word)) &&
-      /^[A-Z\s]+(JR|SR)?$/.test(line.toUpperCase()) // keep only lines that look like names
-    );
+    // Split into words/lines
+    const words = text.split(/[\s\n]+/);
 
-    // Deduplicate consecutive duplicates
-    const uniqueNames = [...new Set(nameLines)];
+    // Words to ignore in names
+    const ignoreWords = ["LAST", "FIRST", "MIDDLE", "NAME", "REGISTRATION", "VALID", "UNTIL", "PROFESSIONAL", "IDENTIFICATION", "CARD", "CERTIFICATION", "SCANNED", "WITH", "CAMSCANNER", "Regulation", "Commisions", "www.prc.gov.ph", "Certification"];
 
-    const extractedName = uniqueNames.join(" ").trim() || null;
+    // Collect name words
+    const nameWords = [];
+    for (let w of words) {
+      if (!ignoreWords.includes(w) && /^[A-Z]+(?:JR|SR)?$/.test(w)) {
+        nameWords.push(w);
+      }
+    }
+
+    // Deduplicate and join
+    const extractedName = [...new Set(nameWords)].join(" ") || null;
 
     // Extract profession
-    const profession = lines.join(" ").match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i)?.[0] || null;
+    const professionMatch = text.match(/MEDICAL TECHNOLOGIST|PSYCHOLOGIST|PHYSICIAN|COUNSELOR|THERAPIST|OCCUPATIONAL THERAPY/i);
+    const profession = professionMatch ? professionMatch[0] : null;
 
-    // Extract registration number (5+ digits)
-    const licenseNumber =
-      lines.join(" ").match(/REGISTRAT[^\n]*\n.*?(\d{5,})/)?.[1]?.trim() ||
-      lines.join(" ").match(/\b\d{5,}\b/)?.[0] ||
-      null;
+    // Extract license number (5+ digits)
+    const licenseNumberMatch = text.match(/\b\d{5,}\b/);
+    const licenseNumber = licenseNumberMatch ? licenseNumberMatch[0] : null;
 
     return {
       extractedName,
