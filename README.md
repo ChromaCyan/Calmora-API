@@ -12,15 +12,14 @@ This README documents all **routes**, **setup steps**, and **system architecture
 ---
 
 ## 📌 Table of Contents
-1. [Overview](#overview)  
-2. [Tech Stack](#tech-stack)  
-3. [Project Structure](#project-structure)  
-4. [Installation & Setup](#installation--setup)  
-5. [Environment Variables](#environment-variables)  
-6. [Authentication](#authentication)  
-7. [API Routes](#api-routes)  
-8. [Socket.io Usage](#socketio)  
-9. [Running the Server](#running-the-server)  
+1. [Overview]
+2. [Tech Stack]
+3. [Project Structure]
+4. [Installation & Setup]
+5. [Environment Variables]
+6. [Authentication]
+7. [API Routes]
+8. [Running the Server]
 
 ---
 
