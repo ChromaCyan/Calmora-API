@@ -200,6 +200,11 @@ Role middlewares available:
 
 ## ▶ Running the Server
 
+### Navigate to API folder:
+```sh
+cd api
+```
+
 ### Development:
 ```sh
 npm run dev
