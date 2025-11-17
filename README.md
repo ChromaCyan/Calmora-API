@@ -69,7 +69,7 @@ server.js
 
 ### 1. Clone the repository
 ```sh
-git clone https://github.com/<your-repo>/calmora-api.git
+git clone https://github.com/ChromaCyan/Calmora-API.git
 cd calmora-api
 ```
 
