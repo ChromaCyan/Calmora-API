@@ -33,7 +33,6 @@ Calmora API handles:
 - Mental health articles  
 - Survey and recommendation system  
 - AI chatbot (Gemini-based)  
-- Real-time chat (Socket.io)  
 - Admin approvals  
 
 ---
