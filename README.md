@@ -84,6 +84,8 @@ PORT=3000
 MONGO_URI=your_mongodb_url
 JWT_SECRET=your_secret_key
 GEMINI_API_KEY=your_api_key
+OCR_SPACE_API_KEY=your_oct_key
+SOCKET_SERVER_URL=your_socket_server
 EMAIL=google@gmail.com
 EMAIL_PASSWORD=your_app_password
 ```
